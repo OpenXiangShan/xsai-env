@@ -6,20 +6,21 @@
 # Format:
 #   <submodule-path>  <commit>  <date>  <branch/tag>  <remote-url>
 
-# Generated: 2026-07-16 05:58 UTC
+# Generated: 2026-09-01 09:53 UTC
 
 # COMPONENT                     COMMIT                                      DATE                       BRANCH/TAG                      URL
 # ---------                     ------                                      ----                       ----------                      ---
 DRAMsim3                        1d2a9bf6da8e050d975ef2669c42faa93943f489    2024-09-05 14:24:16 +0800  (detached)                      git@github.com:OpenXiangShan/DRAMsim3.git
-NEMU                            c9df0dd0a71d73af2a345277c7725f6c60e83888    2026-06-01 17:31:43 +0800  (detached)                      git@github.com:OpenXiangShan/NEMU.git
-XSAI                            04909692a1cdc6b9165b95c7ea83b94bdc01ab39    2026-07-02 14:51:50 +0800  (detached)                      git@github.com:OpenXiangShan/XSAI
+NEMU                            0b8e703791b255b2162ad2f8d83930cff7fd592c    2026-07-20 10:39:46 +0800  v2026.07.r12                    git@github.com:OpenXiangShan/NEMU.git
+NutShell                        fc12171d929e7e589fab9f794ab63ce12e6c594e    2024-12-29 21:59:26 +0800  (detached)                      git@github.com:OSCPU/NutShell
+XSAI                            ba3406b5817cc81171fe6f17173bcbbf790455ec    2026-08-31 20:18:44 +0800  fix/rob-redirect-interlock      git@github.com:OpenXiangShan/XSAI
 docs/CUTE-Design-Doc            93aa3d27bcb32624a86abfbd081e8aa53b3e87a7    2026-04-30 00:07:14 +0800  master                          git@github.com:OpenCUTE/CUTE-Design-Doc.git
 firmware/LibCheckpoint          2115c400af664ba06c57114db39a777ee7e5f1d0    2025-11-18 12:36:59 +0800  (detached)                      git@github.com:OpenXiangShan/LibCheckpoint
 firmware/gcpt_restore           5b4fefe9efc5d22802f9e592ad2649b38d5146c1    2026-05-14 15:38:40 +0800  main                            git@github.com:OpenXiangShan/LibCheckpointAlpha.git
 firmware/nemu_board             5c59af795b395f18368e37c2987728aa7eef16f9    2026-07-07 15:43:06 +0800  master                          git@github.com:OpenXiangShan/nemu_board.git
 firmware/opensbi                74434f255873d74e56cc50aa762d1caf24c099f8    2026-01-08 14:18:14 +0530  v1.8.1                          git@github.com:riscv-software-src/opensbi.git
-firmware/riscv-rootfs           d057e0905a35870cb643e4cd012a1d3ff7f8a828    2026-07-07 15:42:36 +0800  checkpoint                      git@github.com:OurCompArchGroup/riscv-rootfs.git
+firmware/riscv-rootfs           17d2d66f3e74482a1335bd070813af0c8d1b1131    2026-09-01 17:53:04 +0800  checkpoint                      git@github.com:OurCompArchGroup/riscv-rootfs.git
 llvm-project-ame                54eb82653d7a8ee110a604dac37571eadb53f4ef    2026-05-13 17:03:49 +0800  triton-commit-hash              git@github.com:OurCompArchGroup/llvm-project-ame.git
-nexus-am                        36e4868a83b9fdd2b99fafbb49835fa34998b00f    2026-07-16 13:57:16 +0800  feat-matrix                     git@github.com:OurCompArchGroup/nexus-am-ame.git
-qemu                            710c609ab1bb7907c5c9dfdd0df0b508a27cd3e0    2026-04-09 19:25:04 +0800  9.0.0_matrix-v0.6               git@github.com:OpenXiangShan/qemu
+nexus-am                        0a3325b2f42271cb8777f4d047dab8295f8de1cc    2026-08-17 10:01:53 +0800  test/ame-ls-word-cases          git@github.com:OurCompArchGroup/nexus-am-ame.git
+qemu                            81900fed133533518785fec66c73ea3d0bd1eaf3    2026-07-29 20:40:20 +0800  9.0.0_matrix-v0.12              git@github.com:OpenXiangShan/qemu
 riscv-matrix-spec               511ddf6996d9ea0376ebd3539dcde7ec2af59b27    2026-05-12 15:54:02 +0800  latest-511ddf6996d9ea0376ebd3539dcde7ec2af59b27  git@github.com:OurCompArchGroup/riscv-matrix-extension-spec.git
