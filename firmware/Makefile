@@ -108,10 +108,13 @@ XSAI_GGML_AME_PACKED_Q8 ?= 1
 XSAI_GGML_MEM_TRACE_NAME ?= *
 XSAI_GGML_MEM_TRACE_OP ?= *
 XSAI_GGML_MEM_TRACE_LAYER ?= 1
+XSAI_CHECKPOINT_HERE_BEFORE ?=
+XSAI_GOOD_TRAP_BEFORE ?=
 export XSAI_INIT_MODE XSAI_WORKLOAD XSAI_AUTO_EXIT XSAI_DROP_SHELL
 export XSAI_RUN_AFTER_WORKLOAD XSAI_DUMP_THP XSAI_TRACE_WORKLOAD
 export XSAI_GGML_AME_LOG XSAI_GGML_AME_PACKED_Q8
 export XSAI_GGML_MEM_TRACE_NAME XSAI_GGML_MEM_TRACE_OP XSAI_GGML_MEM_TRACE_LAYER
+export XSAI_CHECKPOINT_HERE_BEFORE XSAI_GOOD_TRAP_BEFORE
 
 .PHONY: all check-env download-linux setup-submodules init init-force build-rootfs build-linux build-dtb build-dtb-std build-dtb-xsai build-opensbi build-opensbi-qemu build-opensbi-nemu _build-opensbi build-gcpt build-gcpt-qemu build-gcpt-nemu _build-gcpt build-gcpt-restore build-gcpt-clean clean distclean help
 
