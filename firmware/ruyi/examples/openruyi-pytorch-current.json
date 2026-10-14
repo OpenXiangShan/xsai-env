@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "profile": "openruyi-pytorch-current",
+  "provenance": {
+    "rootfs_release": "openRuyi-2026.08",
+    "rootfs_url": "https://releases.openruyi.cn/creek/2026.08/rva23/openRuyi-2026.08-rootfs-oci.tar",
+    "rootfs_sha256": "2d58802ff3196f1c53080ceb3b52e71b295ea8eb6318d60daa3ef7d32f6a5cd6",
+    "rpm_repository": "https://boat.openruyi.cn/stable/rva23/",
+    "rpm_snapshot_date": "2026-09-29",
+    "note": "Userspace recipe only; firmware owns kernel, generated DTB and GCPT/external-initramfs layout."
+  },
+  "recipe": {
+    "warmd_lazymeta": "0",
+    "lazymeta": "opt-in"
+  },
+  "artifacts": {
+    "oci_rootfs": {
+      "kind": "oci_tar",
+      "url": "https://releases.openruyi.cn/creek/2026.08/rva23/openRuyi-2026.08-rootfs-oci.tar",
+      "sha256": "2d58802ff3196f1c53080ceb3b52e71b295ea8eb6318d60daa3ef7d32f6a5cd6"
+    }
+  },
+  "rpms": [
+    {"name":"abseil-cpp","version":"20260526.0-13.9.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/abseil-cpp-20260526.0-13.9.or.riscv64.rpm","sha256":"41656b0423dd89a096858f6607e48aa74f99296b22f7702f5b9cab304a26472a"},
+    {"name":"busybox","version":"1.37.0-11.14.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/busybox-1.37.0-11.14.or.riscv64.rpm","sha256":"1d34629797004a590128108b96f6c43af0543eac5bcc33614508dafa80a8c232"},
+    {"name":"cpuinfo","version":"0+git20260202.877328f-4.20.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/cpuinfo-0%2Bgit20260202.877328f-4.20.or.riscv64.rpm","sha256":"24136d05ef94207d0701595f4a973e3d1f554e1b6ea88387efaa6dc0a87ef911"},
+    {"name":"cpuinfo-devel","version":"0+git20260202.877328f-4.20.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/cpuinfo-devel-0%2Bgit20260202.877328f-4.20.or.riscv64.rpm","sha256":"f7d78c6e612a6342f2bd227e92a78e792643fc6bb79db7dc4d86ea8c34a8c7ee"},
+    {"name":"fmt","version":"12.1.0-7.9.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/fmt-12.1.0-7.9.or.riscv64.rpm","sha256":"cd0a61a96befa808839c7cf90198da23856c6d745b1838780b4134b76eef611e"},
+    {"name":"libgfortran","version":"16.2.0-16.2.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/libgfortran-16.2.0-16.2.or.riscv64.rpm","sha256":"fc589d08f01f124bd5e22b698a0f31a92f561059a2c1a288dfbc76dcf9a22919"},
+    {"name":"libomp-22","version":"22.2.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/libomp-22-22.2.or.riscv64.rpm","sha256":"da19d8e395c94dd75fb7071600f3e3e2e067e652d135df453c307e0629ce4202"},
+    {"name":"libomp22","version":"22.1.8-20.3.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/libomp22-22.1.8-20.3.or.riscv64.rpm","sha256":"bb97e82c6e22354dd3d9cf22b91ca9ce8a415a9a9355fe499e40060799bc57f6"},
+    {"name":"libyaml","version":"0.2.5-4.22.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/libyaml-0.2.5-4.22.or.riscv64.rpm","sha256":"a0a9d090a6287681e7a3d1b2941af998697cb7d252d073ed9290f0ed606da0c9"},
+    {"name":"numactl","version":"2.0.19-4.14.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/numactl-2.0.19-4.14.or.riscv64.rpm","sha256":"aaf81af37db052166e2d3047c8991615c0f3b67d6ca7dd397aae3e03c98c0e80"},
+    {"name":"onnx","version":"1.20.1-3.36.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/onnx-1.20.1-3.36.or.riscv64.rpm","sha256":"c302df948f705572c56ff8f19ed7c8ed521e47c330337978810601941838469b"},
+    {"name":"openblas","version":"0.3.31-12.4.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/openblas-0.3.31-12.4.or.riscv64.rpm","sha256":"5406c401413bc6a51466a2632182e4b631762007c95e254dd52f2b8b11779159"},
+    {"name":"protobuf","version":"33.2-10.8.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/protobuf-33.2-10.8.or.riscv64.rpm","sha256":"9a072b382e1a2f7d9ede7954e8b909892e02b028051d834983bd23c5b62b4a2f"},
+    {"name":"python-dill","version":"0.4.1-3.18.or","arch":"noarch","url":"https://boat.openruyi.cn/stable/rva23/noarch/python-dill-0.4.1-3.18.or.noarch.rpm","sha256":"ac295555124325bac9fcd48ffa7476a649500e8e1164fabbd593c2b263293328"},
+    {"name":"python-filelock","version":"3.29.0-5.14.or","arch":"noarch","url":"https://boat.openruyi.cn/stable/rva23/noarch/python-filelock-3.29.0-5.14.or.noarch.rpm","sha256":"744b688669b1e43793ff292d337785f6ae23a28955bcf2284be8b4984bc99c6b"},
+    {"name":"python-fsspec","version":"2026.4.0-6.15.or","arch":"noarch","url":"https://boat.openruyi.cn/stable/rva23/noarch/python-fsspec-2026.4.0-6.15.or.noarch.rpm","sha256":"e96ce56bf1b461b318f5f753652b5d65615886abbc07ba3b06c79c20bbba3db7"},
+    {"name":"python-jinja2","version":"3.1.6-4.27.or","arch":"noarch","url":"https://boat.openruyi.cn/stable/rva23/noarch/python-jinja2-3.1.6-4.27.or.noarch.rpm","sha256":"969f691e07b78efc54557577cb6df95f6e998367c778ba472586575ebab46e0e"},
+    {"name":"python-markupsafe","version":"3.0.2-5.26.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/python-markupsafe-3.0.2-5.26.or.riscv64.rpm","sha256":"712f39dc63fe272f6f674c5670d626db5f9503667b169ec247d92f80a89b3833"},
+    {"name":"python-mpmath","version":"1.3.0-4.18.or","arch":"noarch","url":"https://boat.openruyi.cn/stable/rva23/noarch/python-mpmath-1.3.0-4.18.or.noarch.rpm","sha256":"fdcb2308a1b4fa53f71bbf7002647d14f0ab488e63524b655808041ca5f9adbd"},
+    {"name":"python-networkx","version":"3.6.1-3.19.or","arch":"noarch","url":"https://boat.openruyi.cn/stable/rva23/noarch/python-networkx-3.6.1-3.19.or.noarch.rpm","sha256":"1648a1b4f9b3f897b6a534830d978e2815966319e853182c6b890387f61903b3"},
+    {"name":"python-numpy","version":"2.4.6-9.5.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/python-numpy-2.4.6-9.5.or.riscv64.rpm","sha256":"6c8014ba16cac7c2658c693c934122e9332d598b6677daf68ab62c338fe673cf"},
+    {"name":"python-pip","version":"26.1.2-7.15.or","arch":"noarch","url":"https://boat.openruyi.cn/stable/rva23/noarch/python-pip-26.1.2-7.15.or.noarch.rpm","sha256":"98edf73b51fc831d122103049b47cea626054aa4b0e62c66d8386685fadcfafd"},
+    {"name":"python-pyyaml","version":"6.0.3-3.11.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/python-pyyaml-6.0.3-3.11.or.riscv64.rpm","sha256":"0a1726c4b2674f0cf32b539995ef43b18d9aec55839b81bddbd9be61260fe78a"},
+    {"name":"python-setuptools","version":"82.0.1-7.11.or","arch":"noarch","url":"https://boat.openruyi.cn/stable/rva23/noarch/python-setuptools-82.0.1-7.11.or.noarch.rpm","sha256":"8392899ca6108ebcf0733d0f9d20073eb3bb618398f6c7d2f07b1a798492b508"},
+    {"name":"python-sympy","version":"1.14.0-4.16.or","arch":"noarch","url":"https://boat.openruyi.cn/stable/rva23/noarch/python-sympy-1.14.0-4.16.or.noarch.rpm","sha256":"360e902e6e99db5bba95cf8b7b01398670c790e139c65ff0a6c9bccd37f3bd81"},
+    {"name":"python-torch","version":"2.13.0-15.2.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/python-torch-2.13.0-15.2.or.riscv64.rpm","sha256":"a94aaf9ff4b384faad2ac78c69b65c8611cb2e4df3a8518fa7b4a38a753d0eeb"},
+    {"name":"python-typing-extensions","version":"4.15.0-4.13.or","arch":"noarch","url":"https://boat.openruyi.cn/stable/rva23/noarch/python-typing-extensions-4.15.0-4.13.or.noarch.rpm","sha256":"d5ac809c61a7ac3b0c7d294b5549c1131f9bc458f09974a8de9b2199e38d9724"},
+    {"name":"python3","version":"3.13.8-10.25.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/python3-3.13.8-10.25.or.riscv64.rpm","sha256":"7dabfa0334815556a312d250cc0dc7492d5daf25ee28bce45f2bd199b0f48cf4"},
+    {"name":"python3-libs","version":"3.13.8-10.25.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/python3-libs-3.13.8-10.25.or.riscv64.rpm","sha256":"14a05fc5064f9333de58415fdf46ab42a77f6df8e81a676db6acd34294baf50b"},
+    {"name":"sleef","version":"3.9.0-2.28.or","arch":"riscv64","url":"https://boat.openruyi.cn/stable/rva23/riscv64/sleef-3.9.0-2.28.or.riscv64.rpm","sha256":"a6db920145747a3f6d09d0c5d030f2f9122344bf1c69d416fd6103d22743db7f"}
+  ]
+}
