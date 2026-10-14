@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "profile": "openruyi-pytorch",
+  "provenance": {
+    "rpm_base_url": "https://boat.openruyi.cn/stable/rva23/",
+    "record": "reports/openruyi-zero-summary.md",
+    "note": "OCI digest and kernel/initramfs provenance were not preserved in the local record; fill every null before use."
+  },
+  "header_abi": {
+    "python": "3.13.8",
+    "torch": "2.13.0",
+    "libc": "openRuyi rva23",
+    "cxx11_abi": "unknown-until-verified"
+  },
+  "recipe": {
+    "memory": "16GB",
+    "direct_map_reserved": "4GB",
+    "warmd_lazymeta": "0",
+    "lazymeta": "opt-in"
+  },
+  "artifacts": {
+    "oci_rootfs": {
+      "kind": "oci_tar",
+      "path": null,
+      "url": null,
+      "sha256": null
+    },
+    "kernel": {
+      "kind": "kernel",
+      "path": null,
+      "url": null,
+      "sha256": null
+    },
+    "dtb": {
+      "kind": "dtb",
+      "path": null,
+      "url": null,
+      "sha256": null
+    },
+    "initramfs": {
+      "kind": "initramfs",
+      "path": null,
+      "url": null,
+      "sha256": null
+    },
+    "headers": {
+      "kind": "headers",
+      "path": null,
+      "url": null,
+      "sha256": null
+    }
+  },
+  "rpms": [
+    {
+      "name": "python3",
+      "version": "3.13.8-10.23.or",
+      "arch": "riscv64",
+      "url": "https://boat.openruyi.cn/stable/rva23/python3-3.13.8-10.23.or.riscv64.rpm",
+      "path": null,
+      "sha256": "98ff5087c6b94568cc7ac4684cc0138bca4d5aeeef259c7a7045e187b27b7b2e"
+    },
+    {
+      "name": "python3-libs",
+      "version": "3.13.8-10.23.or",
+      "arch": "riscv64",
+      "url": "https://boat.openruyi.cn/stable/rva23/python3-libs-3.13.8-10.23.or.riscv64.rpm",
+      "path": null,
+      "sha256": "404db708336b543995c2d81cf5d3f7f00960e69eb6bbc46ea92f7ad3d8d7ff9f"
+    },
+    {
+      "name": "python-torch",
+      "version": "2.13.0-12.1.or",
+      "arch": "riscv64",
+      "url": "https://boat.openruyi.cn/stable/rva23/python-torch-2.13.0-12.1.or.riscv64.rpm",
+      "path": null,
+      "sha256": "62e607bd9d9310815f47c396721f55b51f73ff9b6d119c9be873e99d648f6966"
+    },
+    {
+      "name": "python-numpy",
+      "version": "2.4.6-9.2.or",
+      "arch": "riscv64",
+      "url": "https://boat.openruyi.cn/stable/rva23/python-numpy-2.4.6-9.2.or.riscv64.rpm",
+      "path": null,
+      "sha256": "b6f57886b0dceb6bde7cd41f4204f964286129d5c8c2c6efac9638844d8eae4b"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+#!/bin/busybox sh
+set -eu
+/bin/busybox mount -t proc proc /proc
+/bin/busybox mount -t sysfs sysfs /sys
+/bin/busybox mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+/bin/busybox mkdir -p /dev/pts /dev/shm /tmp /run
+/bin/busybox mount -t devpts devpts /dev/pts 2>/dev/null || true
+/bin/busybox mount -t tmpfs tmpfs /dev/shm 2>/dev/null || true
+/bin/busybox mdev -s 2>/dev/null || true
+echo always > /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null || true
+exec </dev/console >/dev/console 2>&1
+echo "Welcome to openRuyi (python + pytorch)"
+echo "python: $(/usr/bin/python3.13 --version 2>&1)"
+
+# Cold-start optimization is explicitly opt-in.  The warm service is always
+# isolated from it because its imported torch is shared by all warm jobs.
+if grep -q 'ruyi.lazymeta' /proc/cmdline; then
+  export XSAI_LAZYMETA=1
+  echo "[startup] optional lazy meta registration enabled"
+fi
+if ! grep -q 'ruyi.nowarmd' /proc/cmdline; then
+  XSAI_LAZYMETA=0 /usr/bin/nice -n 19 /usr/bin/python3.13 /opt/warmd.py \
+    --sock /run/torchd.sock --preload torch,numpy >/run/warmd.log 2>&1 &
+fi
+echo "warm python: /opt/py -c 'import torch; print(torch.__version__)'"
+exec /usr/bin/bash --login

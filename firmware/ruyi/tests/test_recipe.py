@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ENTRY = ROOT / "build.sh"
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+class RecipeInputTests(unittest.TestCase):
+    def make_manifest(self, directory, checksum="0" * 64):
+        source = directory / "input"
+        source.write_bytes(b"fixed")
+        artifact = {"path": "input", "url": None, "sha256": checksum}
+        return {
+            "schema_version": 2,
+            "header_abi": {
+                "python": "3.13.8", "torch": "2.13.0",
+                "libc": "test", "cxx11_abi": "0",
+            },
+            "artifacts": {
+                "oci_rootfs": artifact, "kernel": artifact, "dtb": artifact,
+                "initramfs": artifact, "headers": artifact,
+            },
+            "rpms": [{
+                "name": "test", "version": "1", "arch": "riscv64",
+                **artifact,
+            }],
+        }
+
+    def run_validate(self, directory, manifest):
+        path = directory / "manifest.json"
+        path.write_text(json.dumps(manifest))
+        return subprocess.run(
+            ["bash", str(ENTRY), "validate", "--manifest", str(path)],
+            text=True, capture_output=True)
+
+    def test_missing_hash_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            manifest = self.make_manifest(directory)
+            manifest["artifacts"]["kernel"]["sha256"] = None
+            result = self.run_validate(directory, manifest)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("sha256", result.stderr)
+
+    def test_bad_hash_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            result = self.run_validate(directory, self.make_manifest(directory))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("sha256 mismatch", result.stderr)
+
+    def test_fixed_local_inputs_validate(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            source = directory / "input"
+            source.write_bytes(b"fixed")
+            result = self.run_validate(directory, self.make_manifest(directory, sha(source)))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_overlay_keeps_warmd_out_of_lazy_meta_mode(self):
+        init = (ROOT / "overlay" / "init").read_text()
+        self.assertIn("ruyi.lazymeta", init)
+        self.assertIn("XSAI_LAZYMETA=0", init)
+        self.assertNotIn("/nfs/home/", init)
+
+    def test_payload_rejected_before_output_creation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            manifest = directory / "manifest.json"
+            source = directory / "input"
+            source.write_bytes(b"fixed")
+            manifest.write_text(json.dumps(self.make_manifest(directory, sha(source))))
+            output = directory / "out"
+            result = subprocess.run(
+                ["bash", str(ENTRY), "assemble", "--manifest", str(manifest),
+                 "--out", str(output), "--payload"],
+                text=True, capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("reserved for the firmware integration", result.stderr)
+            self.assertFalse(output.exists())
+
+    def test_unknown_cxx11_abi_fails_when_headers_are_declared(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            (directory / "input").write_bytes(b"fixed")
+            manifest = self.make_manifest(directory, sha(directory / "input"))
+            manifest["header_abi"]["cxx11_abi"] = "unknown-until-verified"
+            result = self.run_validate(directory, manifest)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("cxx11_abi", result.stderr)
+
+    def test_https_is_required_for_remote_inputs(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            (directory / "input").write_bytes(b"fixed")
+            manifest = self.make_manifest(directory, sha(directory / "input"))
+            artifact = manifest["artifacts"]["kernel"]
+            artifact["path"] = None
+            artifact["url"] = "http://example.invalid/kernel"
+            result = self.run_validate(directory, manifest)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("https", result.stderr)
+
+    def test_safe_archive_rejects_escaping_symlink(self):
+        import tarfile
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            (directory / "input").write_bytes(b"fixed")
+            archive = directory / "bad.tar"
+            with tarfile.open(archive, "w") as tar:
+                info = tarfile.TarInfo("root")
+                info.type = tarfile.SYMTYPE
+                info.linkname = "../../outside"
+                tar.addfile(info)
+            manifest = self.make_manifest(directory, sha(directory / "input"))
+            manifest["artifacts"]["oci_rootfs"] = {
+                "path": str(archive), "sha256": sha(archive),
+            }
+            manifest_path = directory / "manifest.json"
+            manifest_path.write_text(json.dumps(manifest))
+            out = directory / "out"
+            result = subprocess.run(
+                ["bash", str(ENTRY), "assemble", "--manifest", str(manifest_path),
+                 "--out", str(out)],
+                text=True, capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("link escapes", result.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()
