@@ -64,3 +64,15 @@
 	path = tools/TMA-toolkit
 	url = https://github.com/OurCompArchGroup/TMA-toolkit.git
 	branch = main
+[submodule "software-MNN"]
+	path = software/MNN
+	url = https://github.com/OurCompArchGroup/MNN.git
+	branch = xsai-v2r2a
+[submodule "software-ncnn"]
+	path = software/ncnn
+	url = https://github.com/OurCompArchGroup/ncnn.git
+	branch = xsai-v2r2a
+[submodule "software-llama"]
+	path = software/llama.cpp
+	url = https://github.com/OurCompArchGroup/llama.cpp.git
+	branch = feat/ame-matmul-opt
