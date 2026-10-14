@@ -12,6 +12,19 @@ a separately reviewed change. That rootfs PR was merged on 2026-10-14 as
 `78535eee6989dd2959bd8dbc435fa28f9aac603f`; the parent gitlink selects the merged
 revision, whose tree matches the validated wrapper commit.
 
+The current parent release closure is:
+
+* xsai-env #41: framework/rootfs wrapper integration (merged);
+* xsai-env #43: reproducible openRuyi/PyTorch userspace recipe (merged);
+* xsai-env #45: opt-in external-initramfs firmware flow (merged as
+  `480167c4aca9a863c7cc28a6dbf4c50e283b503b`);
+* xsai-env #44: fixed Triton/xscpu AOT bundle contract (merged as
+  `4b49b4f`, after rebasing onto #45);
+* xsai-env #42: maintained FPGA programming/runtime flow (merged).
+
+The old external-initramfs PR #22, FPGA mega-PR #32, and
+`nemu_board#8` were closed as superseded. They are not release dependencies.
+
 ## Setup and host gate
 
 From the repository root:
@@ -63,6 +76,53 @@ Pass the exact descriptor list to rootfs `verify-manifest` before packaging.
 The firmware's common base/library descriptors must be included when validating
 the complete image, not just the additive MNN/NCNN descriptors.
 
+## openRuyi/PyTorch userspace recipe
+
+`firmware/ruyi/examples/openruyi-pytorch-current.json` is schema version 2 and
+records one OCI rootfs plus 30 RPM inputs with fixed SHA-256 values and public
+HTTPS URLs. The recipe verifies every input before staging, uses an atomic
+digest-keyed cache, rejects unsafe tar members, supports the RPM fallback
+extractor, and applies the tracked overlay. The closure validation passed the
+eight recipe unit tests and a complete local assembly produced a
+199,329,300-byte initramfs.
+
+This recipe deliberately stops at the userspace/initramfs boundary. Kernel,
+DTB, OpenSBI/GCPT and physical initramfs placement remain firmware-owned; use
+the firmware external-initramfs flow below rather than treating a local board
+payload as a portable recipe input.
+
+## Triton/xscpu AOT contract
+
+`DSL/triton-xscpu` records the fixed precompiled
+`triton-xscpu-riscv64-20260918` bundle. Its archive SHA-256 is
+`763a86a8dc952462dcec120c29148b1f37d72bfad3e72869cdd64666d9b0beb5`, and the
+integration verifies the bundle manifest, compiler tools, runtime libraries,
+Triton wheels, bootstrap wheels and metadata before staging. The supported
+release claim is the documented int8-to-int32 ZAMES/ZMASYNC proposal-12 AOT
+path. BF16, floating-point hardware correctness, generic JIT, and
+source-reproducible backend builds are not claimed.
+
+## External initramfs and FPGA boundaries
+
+The default firmware path remains kernel-embedded initramfs. The opt-in path
+is:
+
+```sh
+make -C firmware build-external INITRAMFS_MODE=external
+```
+
+It builds a standalone CPIO from the current complete manifest, checks aligned
+guest-RAM/direct-map placement, emits `linux,initrd-start/end` through the
+merged `firmware/nemu_board` commit
+`12b0322f0edcc19b64c79ca54f1c1494d0966902`, and passes the combined
+kernel+initramfs payload to OpenSBI. The firmware `VERSIONS` table records that
+fetchable gitlink and the merged rootfs revision.
+
+The maintained FPGA path is the explicit reset/program/run flow documented in
+`docs/fpga-workflow.md`; `make test-fpga` is an offline gate. Neither that gate
+nor the software closure claims a new bitstream boot, model accuracy,
+performance result, or unresolved historical llama-bench timing issue.
+
 ## Validation boundary
 
 This integration records host regression and clean fixed-source cross-build
@@ -75,6 +135,7 @@ platform pins are unchanged; their compatibility with these workloads still
 needs a separate runtime gate.
 
 Metadata-only `.gguf.om` / fake-like tests are not real inference. The existing
-openRuyi/PyTorch and Triton evidence is separate from these appliance wrapper
-gates. No simulator, ISA, RTL or FPGA bitstream changes, Nix-specific work,
-large models, binaries or generated artifacts are included in this integration.
+openRuyi/PyTorch, Triton, firmware packaging, and FPGA evidence remain
+separately scoped gates as described above. No simulator, ISA, RTL or FPGA
+bitstream source changes, Nix-specific work, large models, binaries or
+generated artifacts are included in this integration.
