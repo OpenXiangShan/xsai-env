@@ -16,3 +16,6 @@ jobs:
 
       - name: Run top-level smoke checks
         run: make test-smoke
+
+      - name: Run offline FPGA flow checks
+        run: make test-fpga

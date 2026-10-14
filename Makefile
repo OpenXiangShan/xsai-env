@@ -24,23 +24,44 @@ NEMU_PAYLOAD ?= $(GCPT_RESTORE_HOME)/build-nemu/build/gcpt.bin
 PAYLOAD ?= $(QEMU_PAYLOAD)
 FPGA_HOST ?= fpga
 FPGA_REMOTE_PAYLOAD ?=
-FPGA_LTX ?= /home/fpga/xsai.ltx
+FPGA_BIT_HOME ?=
+FPGA_REMOTE_BIT_HOME ?= /home/fpga/xsai-bitstream/current
+FPGA_LTX ?= $(FPGA_REMOTE_BIT_HOME)/pcie_part_gating_wrapper.ltx
 FPGA_DRIVER ?= ~/nexus-am/apps/dse-driver-ai/build/dse-driver-ai-riscv64-xs-driver.bin
 FPGA_XDMA_PROCESS ?= ~/ai/xdma_process/build/xdma_process
 FPGA_TIMEOUT ?= 120
 FPGA_UART_CMD ?=
-FPGA_KILL_UART_READERS ?= 1
+FPGA_KILL_UART_READERS ?= 0
+FPGA_UART_MODE ?= ci
+FPGA_UART_TMUX_SESSION ?= fpga-uart
 FPGA_PASS_PATTERN ?=
 FPGA_FAIL_PATTERN ?=
 FPGA_PCIE_REMOVE_CMD ?=
 FPGA_PCIE_RESCAN_CMD ?=
 FPGA_REMOTE_SETUP ?= source /tools/Xilinx/Vivado_Lab/2020.2/settings64.sh
 FPGA_REMOTE_SUDO ?=
+FPGA_PCIE_SUDO ?= sudo -n
+FPGA_XDMA_REQUIRED_DEVICES ?= /dev/xdma0_c2h_0 /dev/xdma0_h2c_0 /dev/xdma0_user /dev/xdma0_bypass
+FPGA_XDMA_RELOAD_ON_MISSING ?= 0
+FPGA_PCIE_BDF ?=
+FPGA_XDMA_MODULE ?= xdma
+FPGA_XDMA_WAIT_SECS ?= 10
+FPGA_PROGRAM_PCIE_RESET ?= 1
+FPGA_PROGRAM_ASSERT_RESET ?= 1
+export FPGA_HOST FPGA_BIT_HOME FPGA_REMOTE_BIT_HOME FPGA_LTX
+export FPGA_REMOTE_PAYLOAD FPGA_DRIVER FPGA_XDMA_PROCESS FPGA_TIMEOUT
+export FPGA_UART_CMD FPGA_UART_MODE FPGA_UART_TMUX_SESSION FPGA_KILL_UART_READERS
+export FPGA_PASS_PATTERN FPGA_FAIL_PATTERN FPGA_PCIE_REMOVE_CMD FPGA_PCIE_RESCAN_CMD
+export FPGA_PCIE_SUDO FPGA_REMOTE_SETUP FPGA_REMOTE_SUDO FPGA_XDMA_REQUIRED_DEVICES
+export FPGA_XDMA_RELOAD_ON_MISSING FPGA_XDMA_MODULE FPGA_XDMA_WAIT_SECS
+export FPGA_PROGRAM_PCIE_RESET FPGA_PROGRAM_ASSERT_RESET
+export FPGA_PCIE_BDF
 QEMU_DTB ?= $(XS_PROJECT_ROOT)/firmware/nemu_board/dts/build/xiangshan_ai.dtb
 RESTORER_BUILD_ROOT := $(GCPT_RESTORE_HOME)/restore-only
 RESTORER := $(RESTORER_BUILD_ROOT)/build/gcpt.bin
 RUN_NEMU_PAYLOAD = $(if $(filter $(QEMU_PAYLOAD),$(PAYLOAD)),$(NEMU_PAYLOAD),$(PAYLOAD))
 FPGA_RUN_SCRIPT := ./scripts/fpga-run-ai.sh
+FPGA_PROGRAM_SCRIPT := ./scripts/fpga-program-bitstream.sh
 
 # Canonical QEMU CPU flags — keep in sync with scripts/checkpoint.sh CPU_FLAGS
 QEMU_CPU_FLAGS ?= rv64,v=true,vlen=128,h=true,sstc=true,svpbmt=true,zvfh=true,zvfhmin=true,x-matrix=true,rlen=512,mlen=65536,melen=32,sv39=true,sv48=true,sv57=false,sv64=false
@@ -100,6 +121,7 @@ help:
 	@echo "  make test-smoke  - Run fast non-build smoke checks"
 	@echo "  make software-init - Initialize pinned AI framework sources and rootfs"
 	@echo "  make test-ai-software - Run host-only AI software integration gates"
+	@echo "  make test-fpga   - Run offline FPGA orchestration regression tests"
 	@echo "  make nemu        - Build NEMU simulator"
 	@echo "  make docker-nemu-image       - Build NEMU Docker image from centos.Dockerfile"
 	@echo "  make nemu-matrix-ref-so-docker - Build riscv64-matrix-xs-ref shared library in Docker"
@@ -113,10 +135,15 @@ help:
 	@echo "  make run-qemu    - Run QEMU simulation with GCPT payload"
 	@echo "                     Optional: MODEL_IMG=<path/to/disk.img> attaches /dev/vda via virtio-blk"
 	@echo "  make fpga-reset  - Reset FPGA CPU via remote Vivado/VIO using FPGA_LTX"
+	@echo "  make fpga-sync-bitstream - Upload an explicit .bit/.ltx bundle"
+	@echo "  make fpga-program - Program FPGA from FPGA_BIT_HOME"
+	@echo "  make fpga-run-bitstream - Program first, then load and run PAYLOAD"
 	@echo "  make run-fpga    - Upload PAYLOAD and execute remote XDMA load/run flow"
 	@echo "                     Knobs: FPGA_HOST FPGA_REMOTE_PAYLOAD FPGA_DRIVER FPGA_LTX"
 	@echo "                            FPGA_XDMA_PROCESS FPGA_TIMEOUT FPGA_UART_CMD"
 	@echo "                            FPGA_KILL_UART_READERS"
+	@echo "                            FPGA_UART_MODE=ci|interactive FPGA_UART_TMUX_SESSION"
+	@echo "                            FPGA_BIT_HOME FPGA_REMOTE_BIT_HOME FPGA_PCIE_SUDO"
 	@echo "                            FPGA_PASS_PATTERN FPGA_FAIL_PATTERN"
 	@echo "                            FPGA_PCIE_REMOVE_CMD FPGA_PCIE_RESCAN_CMD"
 	@echo "                            FPGA_REMOTE_SETUP FPGA_REMOTE_SUDO"
@@ -311,28 +338,25 @@ run-qemu: _ensure_qemu_payload _ensure_qemu _ensure_qemu_dtb _ensure_model_img
 	"$$@"
 	@echo "✓ QEMU simulation completed"
 
+.PHONY: fpga-sync-bitstream fpga-program fpga-run-bitstream test-fpga
+fpga-sync-bitstream:
+	@$(FPGA_PROGRAM_SCRIPT) --sync-only
+
+fpga-program:
+	@$(FPGA_PROGRAM_SCRIPT)
+
+# Ordered recipes matter: prerequisites can otherwise run concurrently with -j.
+fpga-run-bitstream: _ensure_fpga_payload
+	@bash ./scripts/fpga-program-run.sh --payload "$(RUN_NEMU_PAYLOAD)"
+
+test-fpga:
+	bash ./scripts/test-fpga.sh
+
 fpga-reset:
-	@FPGA_HOST="$(FPGA_HOST)" \
-	  FPGA_LTX="$(FPGA_LTX)" \
-	  FPGA_REMOTE_SETUP="$(FPGA_REMOTE_SETUP)" \
-	  $(FPGA_RUN_SCRIPT) --reset-only
+	@$(FPGA_RUN_SCRIPT) --reset-only
 
 run-fpga: _ensure_fpga_payload
-	@FPGA_HOST="$(FPGA_HOST)" \
-	  FPGA_REMOTE_PAYLOAD="$(FPGA_REMOTE_PAYLOAD)" \
-	  FPGA_LTX="$(FPGA_LTX)" \
-	  FPGA_DRIVER="$(FPGA_DRIVER)" \
-	  FPGA_XDMA_PROCESS="$(FPGA_XDMA_PROCESS)" \
-	  FPGA_TIMEOUT="$(FPGA_TIMEOUT)" \
-	  FPGA_UART_CMD="$(FPGA_UART_CMD)" \
-	  FPGA_KILL_UART_READERS="$(FPGA_KILL_UART_READERS)" \
-	  FPGA_PASS_PATTERN="$(FPGA_PASS_PATTERN)" \
-	  FPGA_FAIL_PATTERN="$(FPGA_FAIL_PATTERN)" \
-	  FPGA_PCIE_REMOVE_CMD="$(FPGA_PCIE_REMOVE_CMD)" \
-	  FPGA_PCIE_RESCAN_CMD="$(FPGA_PCIE_RESCAN_CMD)" \
-	  FPGA_REMOTE_SETUP="$(FPGA_REMOTE_SETUP)" \
-	  FPGA_REMOTE_SUDO="$(FPGA_REMOTE_SUDO)" \
-	  $(FPGA_RUN_SCRIPT) --payload "$(RUN_NEMU_PAYLOAD)"
+	@$(FPGA_RUN_SCRIPT) --payload "$(RUN_NEMU_PAYLOAD)"
 
 # ---------------------------------------------------------------------------
 # SimPoint — init nested submodule (if needed) then build the binary
