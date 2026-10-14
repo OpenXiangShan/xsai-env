@@ -119,6 +119,7 @@ make firmware        # Build rootfs, Linux, DTB, QEMU/NEMU GCPT payloads, and re
 make run-qemu        # Boot the default QEMU flow with the GCPT payload
 make run-nemu        # Run the GCPT payload on NEMU
 make fpga-reset      # Reset FPGA CPU on remote host through Vivado/VIO (no bitstream programming)
+make fpga-program FPGA_BIT_HOME=/path/to/artifacts # Program an explicit .bit/.ltx bundle
 make run-fpga        # Upload PAYLOAD and execute XDMA-based FPGA run on remote host
 make test-matrix     # Build and run the AME matrix simple test
 ```
@@ -130,6 +131,12 @@ Notes:
 - `make run-qemu` and `make run-nemu` auto-build missing payload pieces such as QEMU, DTB, or GCPT binaries when needed.
 - `make run-fpga PAYLOAD=firmware/gcpt_restore/build-nemu/build/gcpt.bin` runs the XDMA FPGA flow against a preconfigured remote board.
 - `make run-fpga` does not build or write bitstreams; it uses `FPGA_LTX` for Vivado VIO reset and then runs remote `xdma_process`.
+- FPGA board access is state-changing; check ownership and the intended payload,
+  bit/LTX provenance before reset, programming or loading. Existing UART readers
+  are not killed by default. `FPGA_UART_MODE=interactive` uses a dedicated tmux
+  terminal and is not a CI acceptance result.
+- `make test-fpga` runs offline regression tests without connecting to a board.
+  See `docs/fpga-workflow.md` for the maintained FPGA flow and acceptance gates.
 - Optional FPGA knobs: `FPGA_HOST`, `FPGA_REMOTE_PAYLOAD`, `FPGA_DRIVER`, `FPGA_XDMA_PROCESS`, `FPGA_LTX`, `FPGA_TIMEOUT`, `FPGA_UART_CMD`, `FPGA_PASS_PATTERN`, `FPGA_FAIL_PATTERN`, `FPGA_PCIE_REMOVE_CMD`, `FPGA_PCIE_RESCAN_CMD`.
 - `make run-user` exists, but it is currently a local `llama.cpp` convenience target with a hard-coded model path and should not be treated as a general validation entrypoint.
 

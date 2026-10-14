@@ -23,6 +23,7 @@ for script in \
   scripts/update-submodule.sh \
   scripts/update-versions.sh \
   scripts/fpga-run-ai.sh \
+  scripts/fpga-program-bitstream.sh \
   scripts/smoke-test.sh; do
   bash -n "$script"
 done
@@ -40,12 +41,12 @@ make_db="$(mktemp)"
 trap 'rm -f "$make_db"' EXIT
 make -qp >"$make_db" 2>/dev/null || true
 
-declared_targets=(firmware qemu xsai gsim run-fpga fpga-reset test test-smoke)
+declared_targets=(firmware qemu xsai gsim run-fpga fpga-reset fpga-program fpga-sync-bitstream fpga-run-bitstream test-fpga test test-smoke)
 for target in "${declared_targets[@]}"; do
   grep -q "^${target}:" "$make_db"
 done
 
-safe_dry_run_targets=(gsim test-smoke)
+safe_dry_run_targets=(gsim test-smoke fpga-program fpga-reset fpga-sync-bitstream test-fpga)
 for target in "${safe_dry_run_targets[@]}"; do
   make -n "$target" >/dev/null
 done

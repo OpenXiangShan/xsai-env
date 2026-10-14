@@ -1,196 +1,192 @@
 #!/usr/bin/env bash
-#
-# FPGA run helper for xsai-env.
-# Inspired by OpenXiangShan/env-scripts and OpenXiangShan/minjie-playground FPGA flows.
+# Load/reset/observe one FPGA workload. This is not a bitstream builder.
 set -euo pipefail
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 XS_PROJECT_ROOT="${XS_PROJECT_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-
+source "$SCRIPT_DIR/fpga/common.sh"
 HOST="${FPGA_HOST:-fpga}"
-REMOTE_PAYLOAD="${FPGA_REMOTE_PAYLOAD:-}"
-LTX="${FPGA_LTX:-/home/fpga/xsai.ltx}"
+REMOTE_SETUP="${FPGA_REMOTE_SETUP-source /tools/Xilinx/Vivado_Lab/2020.2/settings64.sh}"
+LTX="${FPGA_LTX:-/home/fpga/xsai-bitstream/current/pcie_part_gating_wrapper.ltx}"
 DRIVER="${FPGA_DRIVER:-~/nexus-am/apps/dse-driver-ai/build/dse-driver-ai-riscv64-xs-driver.bin}"
-XDMA_PROCESS="${FPGA_XDMA_PROCESS:-~/ai/xdma_process/build/xdma_process}"
-TIMEOUT="${FPGA_TIMEOUT:-120}"
+LOADER="${FPGA_XDMA_PROCESS:-~/ai/xdma_process/build/xdma_process}"
 REMOTE_SUDO="${FPGA_REMOTE_SUDO-}"
-UART_CMD="${FPGA_UART_CMD:-}"
-KILL_UART_READERS="${FPGA_KILL_UART_READERS:-1}"
-PASS_PATTERN="${FPGA_PASS_PATTERN:-}"
-FAIL_PATTERN="${FPGA_FAIL_PATTERN:-}"
-PCIE_REMOVE_CMD="${FPGA_PCIE_REMOVE_CMD:-}"
-PCIE_RESCAN_CMD="${FPGA_PCIE_RESCAN_CMD:-}"
-REMOTE_SETUP="${FPGA_REMOTE_SETUP:-source /tools/Xilinx/Vivado_Lab/2020.2/settings64.sh}"
-
+TIMEOUT="${FPGA_TIMEOUT:-120}"
+UART_MODE="${FPGA_UART_MODE:-ci}"
+SESSION="${FPGA_UART_TMUX_SESSION:-fpga-uart}"
+PASS="${FPGA_PASS_PATTERN-}"
+FAIL="${FPGA_FAIL_PATTERN-}"
+REMOTE_PAYLOAD="${FPGA_REMOTE_PAYLOAD-}"
+KILL_READERS="${FPGA_KILL_UART_READERS:-0}"
 RESET_ONLY=0
+WORKER=0
 PAYLOAD=""
-
 usage() {
-  cat <<'EOF'
-Usage:
-  scripts/fpga-run-ai.sh --payload <local-payload>
-  scripts/fpga-run-ai.sh --reset-only
-
-Environment knobs:
-  FPGA_HOST, FPGA_REMOTE_PAYLOAD, FPGA_LTX, FPGA_DRIVER, FPGA_XDMA_PROCESS
-  FPGA_TIMEOUT, FPGA_UART_CMD, FPGA_KILL_UART_READERS, FPGA_PASS_PATTERN, FPGA_FAIL_PATTERN
-  FPGA_PCIE_REMOVE_CMD, FPGA_PCIE_RESCAN_CMD, FPGA_REMOTE_SETUP, FPGA_REMOTE_SUDO
-EOF
+    printf '%s\n' \
+        'Usage: scripts/fpga-run-ai.sh --payload <file> | --reset-only' \
+        'FPGA_UART_MODE=ci|interactive; FPGA_PASS_PATTERN is literal; FPGA_FAIL_PATTERN is regex.' \
+        'FPGA_TIMEOUT bounds observation, not workload completion. No automatic reader killing.' \
+        'Supply exact FPGA_HOST/FPGA_LTX/FPGA_DRIVER/FPGA_XDMA_PROCESS paths.'
 }
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --payload)
-      PAYLOAD="${2:-}"
-      shift 2
-      ;;
-    --reset-only)
-      RESET_ONLY=1
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Unknown argument: $1" >&2
-      usage >&2
-      exit 1
-      ;;
-  esac
+while (( $# )); do
+    case "$1" in
+        --payload) (( $# >= 2 )) || { usage >&2; exit 2; }; PAYLOAD="$2"; shift 2 ;;
+        --reset-only) RESET_ONLY=1; shift ;;
+        --interactive-worker) WORKER=1; shift ;;
+        -h|--help) usage; exit 0 ;;
+        *) usage >&2; exit 2 ;;
+    esac
 done
-
-require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
-    echo "Required command not found: $1" >&2
-    exit 1
-  }
+fpga_positive FPGA_TIMEOUT "$TIMEOUT"
+fpga_bool FPGA_KILL_UART_READERS "$KILL_READERS"
+[[ "$KILL_READERS" == 0 ]] || {
+    echo "error: automatic reader killing is unsupported; stop only your owned reader explicitly" >&2
+    exit 2
 }
-
-run_remote() {
-  local cmd="$1"
-  ssh "$HOST" "bash -lc $(printf '%q' "$cmd")"
-}
-
-run_remote_with_setup() {
-  local cmd="$1"
-  run_remote "${REMOTE_SETUP}; ${cmd}"
-}
-
-with_remote_sudo() {
-  if [[ -n "$REMOTE_SUDO" ]]; then
-    printf '%s %s' "$REMOTE_SUDO" "$*"
-  else
-    printf '%s' "$*"
-  fi
-}
-
-require_cmd ssh
-require_cmd scp
-
-if [[ "$RESET_ONLY" -eq 0 ]]; then
-  [[ -n "$PAYLOAD" ]] || { echo "Missing --payload" >&2; exit 1; }
-  [[ -f "$PAYLOAD" ]] || { echo "Payload not found: $PAYLOAD" >&2; exit 1; }
+[[ "$UART_MODE" == ci || "$UART_MODE" == interactive ]] || { echo "error: invalid FPGA_UART_MODE" >&2; exit 2; }
+fpga_path FPGA_LTX "$LTX"
+[[ "$RESET_ONLY" == 1 || -s "$PAYLOAD" ]] || { echo "error: nonempty --payload required" >&2; exit 2; }
+[[ "$RESET_ONLY" == 0 || -z "$PAYLOAD" ]] || { echo "error: reset-only and payload are mutually exclusive" >&2; exit 2; }
+[[ -z "$REMOTE_PAYLOAD" ]] || fpga_path FPGA_REMOTE_PAYLOAD "$REMOTE_PAYLOAD"
+[[ -f "$SCRIPT_DIR/fpga/reset_cpu.tcl" ]]
+for tool in ssh scp sha256sum; do command -v "$tool" >/dev/null; done
+driver_cmd="$(fpga_tool_path "$DRIVER")"
+loader_cmd="$(fpga_tool_path "$LOADER")"
+if [[ -n "$FAIL" ]]; then
+    regex_rc=0
+    [[ "" =~ $FAIL ]] || regex_rc=$?
+    (( regex_rc != 2 )) || { echo "error: invalid FAIL regex" >&2; exit 2; }
+fi
+UART_CMD="${FPGA_UART_CMD-}"
+if [[ -z "$UART_CMD" ]]; then
+    UART_CMD="${REMOTE_SUDO:+$REMOTE_SUDO }"' "$HOME"/xdma_work/tools/proto/pcie-util /dev/xdma0_user uart 0x10000'
 fi
 
-RESET_TCL_LOCAL="$XS_PROJECT_ROOT/scripts/fpga/reset_cpu.tcl"
-[[ -f "$RESET_TCL_LOCAL" ]] || { echo "Missing reset helper: $RESET_TCL_LOCAL" >&2; exit 1; }
+if [[ "$UART_MODE" == interactive && "$RESET_ONLY" == 0 && "$WORKER" == 0 ]]; then
+    command -v tmux >/dev/null
+    [[ "$SESSION" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "error: invalid tmux session" >&2; exit 2; }
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        echo "error: existing tmux session preserved: $SESSION" >&2; exit 1
+    fi
+    # The worker owns the lease through the entire interactive session.
+    command_args=(env "XS_PROJECT_ROOT=$XS_PROJECT_ROOT" "FPGA_HOST=$HOST"
+        "FPGA_REMOTE_SETUP=$REMOTE_SETUP" "FPGA_LTX=$LTX" "FPGA_DRIVER=$DRIVER"
+        "FPGA_XDMA_PROCESS=$LOADER" "FPGA_REMOTE_SUDO=$REMOTE_SUDO"
+        "FPGA_UART_CMD=$UART_CMD" "FPGA_UART_MODE=interactive"
+        "FPGA_TIMEOUT=$TIMEOUT" "FPGA_REMOTE_PAYLOAD=$REMOTE_PAYLOAD"
+        "FPGA_KILL_UART_READERS=0" bash "$SCRIPT_DIR/fpga-run-ai.sh"
+        --payload "$(realpath "$PAYLOAD")" --interactive-worker)
+    printf -v command_text '%q ' "${command_args[@]}"
+    tmux new-session -d -s "$SESSION" "$command_text"
+    echo "[fpga] interactive worker started; attach with: tmux attach -t $SESSION"
+    echo "[fpga] detached terminal is not a workload acceptance result"
+    exit 0
+fi
 
 run_id="$(date +%Y%m%d-%H%M%S)-$$"
-if [[ -z "$REMOTE_PAYLOAD" ]]; then
-  payload_ext="${PAYLOAD##*.}"
-  if [[ "$payload_ext" == "$PAYLOAD" ]]; then
-    payload_ext="bin"
-  fi
-  REMOTE_PAYLOAD="/tmp/xsai-payload-${run_id}.${payload_ext}"
-fi
-if [[ -z "$UART_CMD" ]]; then
-  UART_CMD="$(with_remote_sudo '~/xdma_work/tools/proto/pcie-util' /dev/xdma0_user uart 0x10000)"
-fi
-remote_tcl="/tmp/xsai-reset-cpu-${run_id}.tcl"
-remote_uart_log="/tmp/xsai-fpga-uart-${run_id}.log"
-remote_uart_pid="/tmp/xsai-fpga-uart-${run_id}.pid"
-local_uart_log="$XS_PROJECT_ROOT/log/fpga-uart-${run_id}.log"
-uart_started=0
-
+remote_tcl="/tmp/xsai-reset-${run_id}.tcl"
+remote_temp=""
+uploaded=0
+remote_reset_log="/tmp/xsai-reset-${run_id}.log"
 cleanup() {
-  if [[ "$uart_started" -eq 1 ]]; then
-    run_remote "if [ -f ${remote_uart_pid} ]; then kill \$(cat ${remote_uart_pid}) >/dev/null 2>&1 || true; fi" || true
-  fi
-  run_remote "rm -f ${remote_tcl} ${remote_uart_pid}" >/dev/null 2>&1 || true
+    local rc=$?
+    trap - EXIT
+    if [[ "$uploaded" == 1 ]]; then
+        fpga_remote "rm -f -- $(fpga_quote "$remote_tcl") $(fpga_quote "$remote_reset_log")" >/dev/null 2>&1 || true
+    fi
+    if [[ -n "$remote_temp" ]]; then
+        fpga_remote "rm -f -- $(fpga_quote "$remote_temp")" >/dev/null 2>&1 || true
+    fi
+    fpga_release
+    exit "$rc"
 }
 trap cleanup EXIT
-
-set_reset_vio() {
-  local value="$1"
-  echo "[fpga] Uploading reset helper to ${HOST}:${remote_tcl}"
-  scp "$RESET_TCL_LOCAL" "${HOST}:${remote_tcl}"
-
-  echo "[fpga] Setting reset VIO to ${value} via Vivado with LTX: ${LTX}"
-  run_remote "test -f ${LTX}"
-  run_remote_with_setup "vivado -mode batch -source ${remote_tcl} -tclargs ${LTX} ${value}"
+trap 'exit 130' INT
+trap 'exit 143' TERM
+fpga_acquire
+fpga_remote "test -s $(fpga_quote "$LTX")"
+if [[ "$RESET_ONLY" == 0 ]]; then
+    fpga_remote "test -s $driver_cmd && test -x $loader_cmd"
+    digest="$(sha256sum "$PAYLOAD" | awk '{print $1}')"
+    REMOTE_PAYLOAD="${REMOTE_PAYLOAD:-/tmp/xsai-payload-${digest}.bin}"
+    existing="$(fpga_remote "if test -f $(fpga_quote "$REMOTE_PAYLOAD"); then sha256sum -- $(fpga_quote "$REMOTE_PAYLOAD") | cut -d ' ' -f1; fi")"
+    if [[ "$existing" == "$digest" ]]; then
+        echo "[fpga] payload SHA256 matches; reusing $REMOTE_PAYLOAD"
+    else
+        remote_temp="${REMOTE_PAYLOAD}.upload-${run_id}"
+        scp -- "$PAYLOAD" "$HOST:$remote_temp"
+        fpga_remote "set -e; test $(fpga_quote "$digest") = \"\$(sha256sum -- $(fpga_quote "$remote_temp") | cut -d ' ' -f1)\"; mv -- $(fpga_quote "$remote_temp") $(fpga_quote "$REMOTE_PAYLOAD")"
+        remote_temp=""
+    fi
+fi
+scp -- "$SCRIPT_DIR/fpga/reset_cpu.tcl" "$HOST:$remote_tcl"
+uploaded=1
+reset() {
+    fpga_remote_setup "vivado -mode batch -source $(fpga_quote "$remote_tcl") -tclargs $(fpga_quote "$LTX") $1"
 }
-
-if [[ "$RESET_ONLY" -eq 0 ]]; then
-  echo "[fpga] Uploading payload: ${PAYLOAD} -> ${HOST}:${REMOTE_PAYLOAD}"
-  scp "$PAYLOAD" "${HOST}:${REMOTE_PAYLOAD}"
+reset 1
+if [[ "$RESET_ONLY" == 1 ]]; then echo "[fpga] reset asserted"; exit 0; fi
+[[ -z "${FPGA_PCIE_REMOVE_CMD:-}" ]] || fpga_remote "$FPGA_PCIE_REMOVE_CMD"
+[[ -z "${FPGA_PCIE_RESCAN_CMD:-}" ]] || fpga_remote "$FPGA_PCIE_RESCAN_CMD"
+fpga_remote "${REMOTE_SUDO:+$REMOTE_SUDO }$loader_cmd -i $(fpga_quote "$REMOTE_PAYLOAD") -d $driver_cmd"
+mkdir -p "$XS_PROJECT_ROOT/log"
+log_file="$XS_PROJECT_ROOT/log/fpga-uart-${run_id}.log"
+reset_log="$XS_PROJECT_ROOT/log/fpga-reset-${run_id}.log"
+if [[ "$UART_MODE" == interactive ]]; then
+    reset 0 > "$reset_log" 2>&1
+    echo "[fpga] interactive UART; exit this terminal to release the board lease"
+    ssh -tt -o BatchMode=yes -o ConnectTimeout=15 "$HOST" "bash -lc $(fpga_quote "$UART_CMD")"
+    exit $?
 fi
-
-set_reset_vio 1
-
-if [[ -n "$PCIE_REMOVE_CMD" ]]; then
-  echo "[fpga] Running optional PCIe remove hook"
-  run_remote "$PCIE_REMOVE_CMD"
-fi
-
-if [[ -n "$PCIE_RESCAN_CMD" ]]; then
-  echo "[fpga] Running optional PCIe rescan hook"
-  run_remote "$PCIE_RESCAN_CMD"
-fi
-
-if [[ "$RESET_ONLY" -eq 1 ]]; then
-  echo "[fpga] Reset-only flow complete"
-  exit 0
-fi
-
-echo "[fpga] Running XDMA loader"
-run_remote "$(with_remote_sudo "${XDMA_PROCESS}" -i "${REMOTE_PAYLOAD}" -d "${DRIVER}")"
-
-if [[ -n "$UART_CMD" ]]; then
-  mkdir -p "$XS_PROJECT_ROOT/log"
-  if [[ "$KILL_UART_READERS" -eq 1 ]]; then
-    echo "[fpga] Killing stale UART readers on ${HOST}"
-    run_remote "pkill -f '[p]cie-util .*uart' >/dev/null 2>&1 || true"
-  fi
-  echo "[fpga] Starting UART capture on ${HOST}"
-  run_remote "rm -f ${remote_uart_log} ${remote_uart_pid}; nohup bash -lc $(printf '%q' "$UART_CMD") > ${remote_uart_log} 2>&1 & echo \$! > ${remote_uart_pid}"
-  uart_started=1
-fi
-
-set_reset_vio 0
-
-if [[ "$uart_started" -eq 1 ]]; then
-  echo "[fpga] Streaming UART output (timeout=${TIMEOUT}s)"
-  set +e
-  ssh "$HOST" "timeout ${TIMEOUT}s tail -n +1 -F ${remote_uart_log}" | tee "$local_uart_log"
-  tail_rc=${PIPESTATUS[0]}
-  set -e
-  if [[ "$tail_rc" -eq 124 ]]; then
-    echo "[fpga] UART observation window expired after ${TIMEOUT}s; workload may still be running"
-  elif [[ "$tail_rc" -ne 0 ]]; then
-    echo "[fpga] UART tail failed with exit code ${tail_rc}" >&2
-    exit "$tail_rc"
-  fi
-
-  if [[ -n "$PASS_PATTERN" ]] && ! grep -Eq "$PASS_PATTERN" "$local_uart_log"; then
-    echo "[fpga] PASS pattern not found: ${PASS_PATTERN}" >&2
-    exit 1
-  fi
-  if [[ -n "$FAIL_PATTERN" ]] && grep -Eq "$FAIL_PATTERN" "$local_uart_log"; then
-    echo "[fpga] FAIL pattern matched: ${FAIL_PATTERN}" >&2
-    exit 1
-  fi
-  echo "[fpga] UART log saved to ${local_uart_log}"
-fi
-
-echo "[fpga] Run completed"
+# Start the remote UART reader before releasing reset, so boot output is retained.
+release_cmd="set -e; ${REMOTE_SETUP}; vivado -mode batch -source $(fpga_quote "$remote_tcl") -tclargs $(fpga_quote "$LTX") 0"
+set +e
+printf -v uart_args '%q ' "$UART_CMD" "$TIMEOUT" "$PASS" "$FAIL" "$release_cmd" "$remote_reset_log"
+ssh -o BatchMode=yes -o ConnectTimeout=15 "$HOST" "bash -s -- $uart_args" <<'UART' | tee "$log_file"
+set -euo pipefail
+cmd="$1"; limit="$2"; pass="$3"; fail="$4"; release="$5"; reset_log="$6"
+scratch="$(mktemp -d /tmp/xsai-uart.XXXXXXXX)"
+mkfifo "$scratch/fifo"
+child=""
+cleanup_uart() {
+    [[ -z "$child" ]] || kill -- "-$child" 2>/dev/null || true
+    [[ -z "$child" ]] || kill -KILL -- "-$child" 2>/dev/null || true
+    [[ -z "$child" ]] || wait "$child" 2>/dev/null || true
+    rm -f -- "$scratch/fifo"
+    rmdir -- "$scratch"
+}
+trap cleanup_uart EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM HUP
+setsid bash -lc "$cmd" > "$scratch/fifo" 2>&1 &
+child=$!
+exec 3< "$scratch/fifo"
+bash -lc "$release" > "$reset_log" 2>&1
+deadline=$((SECONDS + limit))
+while true; do
+    remaining=$((deadline - SECONDS))
+    (( remaining > 0 )) || exit 124
+    if IFS= read -r -t "$remaining" line <&3; then
+        line="${line%$'\r'}"
+        printf '%s\n' "$line"
+        if [[ -n "$fail" && "$line" =~ $fail ]]; then exit 42; fi
+        if [[ -n "$pass" && "$line" == *"$pass"* ]]; then exit 0; fi
+    else
+        status=$?
+        (( status <= 128 )) || exit 124
+        exit 3
+    fi
+done
+UART
+pipeline_status=("${PIPESTATUS[@]}")
+uart_status="${pipeline_status[0]}"
+scp -- "$HOST:$remote_reset_log" "$reset_log" >/dev/null 2>&1
+set -e
+[[ "${pipeline_status[1]}" == 0 ]] || { echo "error: UART log write failed" >&2; exit 1; }
+case "$uart_status" in
+    0) echo "[fpga] configured PASS marker observed" ;;
+    42) echo "[fpga] configured FAIL marker observed" >&2; exit 1 ;;
+    124) echo "[fpga] observation timeout; workload may still be running" >&2; exit 124 ;;
+    3) echo "[fpga] UART ended without PASS; workload not verified" >&2; exit 3 ;;
+    *) [[ ! -f "$reset_log" ]] || cat "$reset_log" >&2
+       echo "[fpga] UART/reset failed: $uart_status" >&2; exit "$uart_status" ;;
+esac
