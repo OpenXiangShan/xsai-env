@@ -133,6 +133,8 @@ help:
 	@echo "  make nix-init    - Run make init-force inside the Nix devshell"
 	@echo "  make nix-test    - Run make test inside the Nix devshell"
 	@echo "  make test-smoke  - Run fast non-build smoke checks"
+	@echo "  make software-init - Initialize pinned AI framework sources and rootfs"
+	@echo "  make test-ai-software - Run host-only AI software integration gates"
 	@echo "  make nix-smoke   - Run smoke checks inside the Nix devshell"
 	@echo "  make nemu        - Build NEMU simulator"
 	@echo "  make docker-nemu-image       - Build NEMU Docker image from centos.Dockerfile"
@@ -217,6 +219,13 @@ nix-test:
 
 test-smoke:
 	./scripts/smoke-test.sh --mode manual
+
+.PHONY: software-init test-ai-software
+software-init:
+	git submodule update --init software/MNN software/ncnn software/llama.cpp firmware/riscv-rootfs
+
+test-ai-software:
+	bash ./scripts/test-ai-software.sh
 
 smoke: test-smoke
 

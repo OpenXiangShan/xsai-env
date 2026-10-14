@@ -61,6 +61,9 @@ For rootfs smoke tests, remember that "the software path works" only when all th
 
 ## Validation
 
+- `make software-init` initializes the framework sources and rootfs at the
+  pinned gitlinks. `make test-ai-software` runs the host-only integration gates.
+  See `../docs/ai-software-integration.md` for build gates and claim boundaries.
 - For rootfs apps, start with app-local builds under `firmware/riscv-rootfs/apps/<app>/`, then validate via `make firmware` and `make run-qemu`.
 - For AM apps, use app-local or test-local `nexus-am` targets first, then validate on the intended simulator or RTL path.
 
