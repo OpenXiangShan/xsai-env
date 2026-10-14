@@ -35,7 +35,7 @@ git submodule foreach --quiet '
     date=$(git log -1 --format="%ci" HEAD)
     branch=$(git symbolic-ref --short HEAD 2>/dev/null || git describe --tags --exact-match HEAD 2>/dev/null || echo "(detached)")
     url=$(git remote get-url origin 2>/dev/null || echo "local")
-    printf "%-30s  %-42s  %-25s  %-30s  %s\n" "$name" "$commit" "$date" "$branch" "$url"
+    printf "%-30s  %-42s  %-25s  %-30s  %s\n" "$sm_path" "$commit" "$date" "$branch" "$url"
 ' >> "$OUT"
 
 echo ""

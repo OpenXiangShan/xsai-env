@@ -98,6 +98,8 @@ help:
 	@echo "  make llvm        - Build custom LLVM toolchain (uses system compiler)"
 	@echo "  make gsim        - Install the latest gsim binary to local/bin"
 	@echo "  make test-smoke  - Run fast non-build smoke checks"
+	@echo "  make software-init - Initialize pinned AI framework sources and rootfs"
+	@echo "  make test-ai-software - Run host-only AI software integration gates"
 	@echo "  make nemu        - Build NEMU simulator"
 	@echo "  make docker-nemu-image       - Build NEMU Docker image from centos.Dockerfile"
 	@echo "  make nemu-matrix-ref-so-docker - Build riscv64-matrix-xs-ref shared library in Docker"
@@ -156,6 +158,13 @@ gsim:
 
 test-smoke:
 	./scripts/smoke-test.sh
+
+.PHONY: software-init test-ai-software
+software-init:
+	git submodule update --init software/MNN software/ncnn software/llama.cpp firmware/riscv-rootfs
+
+test-ai-software:
+	bash ./scripts/test-ai-software.sh
 
 smoke: test-smoke
 
