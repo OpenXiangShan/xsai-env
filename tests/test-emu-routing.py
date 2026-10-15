@@ -88,6 +88,24 @@ class EmuRouting(unittest.TestCase):
         self.assertIn("ARCH=riscv64-xs TOOLCHAIN=LLVM", recipe)
         self.assertNotIn("ame0.6", recipe)
 
+    def test_current_xsai_initialization_guard(self):
+        noop = self.root / "initialized-xsai"
+        required = ["rocket-chip/common.sc", "rocket-chip/cde/common.sc",
+                    "rocket-chip/hardfloat/common.sc", "XSAICache/common.sc",
+                    "XSAICache/OpenNCB/common.sc", "CUTE/common.sc"]
+        for relative in required:
+            path = noop / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.touch()
+        argv = ["make", "-f", str(REPO / "Makefile"), "_ensure_xsai_init",
+                f"NOOP_HOME={noop}", "MAKE=/bin/false"]
+        subprocess.run(argv, env=self.env, check=True, capture_output=True)
+        # A genuinely missing dependency still goes through the owner init.
+        (noop / "XSAICache/OpenNCB/common.sc").unlink()
+        result = subprocess.run(argv, env=self.env, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b"init-force", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

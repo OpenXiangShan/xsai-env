@@ -39,6 +39,10 @@ make test-matrix
 custom LLVM. `tests/ame0.6` is no longer the runnable default. The custom
 compiler must accept `-march=rv64gc_zames_zmasync`.
 
+The parent's initialization guard checks the current `XSAICache`/`OpenNCB`
+layout, not the removed top-level `openLLC`, `huancun` and `coupledL2`
+directories. A real missing dependency still invokes XSAI's own `init-force`.
+
 Keep DiffTest's `XSAI/build/emu` symlink as the default backend selector.
 For an existing binary use an explicit path:
 

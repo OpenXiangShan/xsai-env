@@ -108,9 +108,8 @@ XSAI_REQUIRED_FILES := \
 	$(NOOP_HOME)/rocket-chip/common.sc \
 	$(NOOP_HOME)/rocket-chip/hardfloat/common.sc \
 	$(NOOP_HOME)/rocket-chip/cde/common.sc \
-	$(NOOP_HOME)/openLLC/common.sc \
-	$(NOOP_HOME)/huancun/common.sc \
-	$(NOOP_HOME)/coupledL2/common.sc \
+	$(NOOP_HOME)/XSAICache/common.sc \
+	$(NOOP_HOME)/XSAICache/OpenNCB/common.sc \
 	$(NOOP_HOME)/CUTE/common.sc
 
 help:
