@@ -93,6 +93,23 @@ Why this order:
 - NEMU is roughly two orders of magnitude faster than RTL and is the preferred golden-model step before touching RTL.
 - RTL should be used after the software path is already narrowed down, mainly for realistic performance behavior or workload-level ST validation.
 
+### Payload and simulator artifacts
+
+The three execution paths consume different artifacts. Do not mix them:
+
+| Artifact | Purpose | Consumed by |
+|---|---|---|
+| `firmware/gcpt_restore/build-nemu/build/gcpt.bin` | Emulation and board execution; OpenSBI carries an embedded DTB | `make run-emu`, `make run-nemu`, `make run-fpga` |
+| `firmware/gcpt_restore/build-qemu/build/gcpt.bin` | Functional bring-up and checkpoint slicing; the DTB comes from the QEMU `-bios` flow | `make run-qemu`, `make profile`, `make cluster`, `make ckpt` |
+| `$(QEMU_BUILD_DIR)/qemu-riscv64` plus one built rootfs app | Fastest user-mode correctness check of a single app, before any boot flow | direct `qemu-riscv64 firmware/riscv-rootfs/rootfsimg/build/<app>` with `QEMU_LD_PREFIX` pointing at the sysroot |
+
+`build-gcpt-nemu` and `build-gcpt-qemu` differ in `OPENSBI_EMBED_DTB`. The QEMU
+payload expects a predecessor to place the DTB at `FW_PAYLOAD_FDT_ADDR`; the
+board and emulator flows provide none, so a QEMU payload loaded there produces
+no console output at all. `RUN_NEMU_PAYLOAD` performs this mapping automatically
+for `run-emu`, `run-emu-debug`, `run-nemu` and `run-fpga`. See
+`docs/troubleshooting.md` for the symptom.
+
 Checkpoint defaults differ by entrypoint.
 
 Top-level `make ckpt` currently uses the SimPoint sampling defaults from `Makefile`:
