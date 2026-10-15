@@ -5,6 +5,13 @@ description: Migrate XSAI RISC-V matrix-extension assembly from the Xuantie 0.6 
 
 # Xuantie 0.6 -> Zames proposal-12 migration
 
+This porting reference describes the proposal-12 instruction migration. The
+current XSAI/nexus-am pins have moved to proposal-14; use the matching tests
+under `nexus-am/tests/`, not the removed `apps/` copies. In particular,
+proposal-14 whole-register operations are stride-less (`rs2=x0`); the
+proposal-12 stride examples below are for legacy targets only. Do not
+silently apply those examples to the current RTL.
+
 The Zames spec drops type encoding from instruction mnemonics. Element width and
 signedness are programmed into `mcfgN` configuration registers and shared across
 loads, stores, and `mmacc`. For the common fixed `i8*i8->i32` kernels, program
@@ -126,8 +133,9 @@ msc.whole acc0, (rs1), rs2
 
 For proposal-12 in this tree, `rs2` is the inter-row byte stride. Passing `x0`
 does not mean "contiguous whole image"; it collapses all rows onto the base row.
-Proposal-14 later changed whole-register access to a stride-less form with `rs2`
-forced to `x0`, but that is not the target for this environment.
+Proposal-14 changed whole-register access to a stride-less form with `rs2`
+forced to `x0`. That is the current XSAI/nexus-am target; preserve the
+three-operand stride form only when explicitly working on proposal-12.
 
 ## Zmasync Sync Primitives
 
@@ -173,16 +181,17 @@ exception at `msetcfg` time.
 
 ## Reference Ports
 
-Use `nexus-am/apps/ame-mmacc/` as the main assembly reference. It mirrors the
+Use `nexus-am/tests/ame-mmacc/` as the main assembly reference. It mirrors the
 old Xuantie MMACC coverage with expected results `131`, `4145283`, `-16253`,
 and `-32637`, but uses proposal-12 end to end.
 
-Use `nexus-am/tests/ame0.6/` and `firmware/riscv-rootfs/apps/hello_xsai/` as
-the C inline-asm references. They keep instruction helpers in headers and call
-a one-time AME init helper before the hot GEMM path.
+Use `firmware/riscv-rootfs/apps/hello_xsai/` as a proposal-12 C inline-asm
+reference. It keeps instruction helpers in headers and calls a one-time AME
+init helper before the hot GEMM path. The old `nexus-am/tests/ame0.6/` body
+has been removed in the current nexus-am pin.
 
-For whole-register behavior, use `nexus-am/apps/ame-ls-whole/`; it documents
-the proposal-12 `rs2` stride semantics and calls out the proposal-14 difference.
+For current whole-register behavior, use `nexus-am/tests/ame-ls-whole/` and
+check its proposal-14 stride-less syntax rather than copying legacy examples.
 
 ## Quick Conversion Checklist
 

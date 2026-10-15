@@ -28,6 +28,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 XS_PROJECT_ROOT="${XS_PROJECT_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 NOOP_HOME="${NOOP_HOME:-$XS_PROJECT_ROOT/XSAI}"
+EMU_BIN="${EMU_BIN:-$NOOP_HOME/build/emu}"
 EMU_STACK_KB="${EMU_STACK_KB:-65536}"
 
 # ---------------------------------------------------------------------------
@@ -81,7 +82,7 @@ done
 
 [[ -n "$PAYLOAD" ]] || { echo "Usage: $0 [--log] [--diff] <payload>" >&2; exit 1; }
 [[ -f "$PAYLOAD" ]] || { echo "Payload not found: $PAYLOAD" >&2; exit 1; }
-[[ -x "$NOOP_HOME/build/emu" ]] || { echo "emu not found: $NOOP_HOME/build/emu" >&2; exit 1; }
+[[ -x "$EMU_BIN" ]] || { echo "emu not found: $EMU_BIN" >&2; exit 1; }
 
 if [[ -n "$EMU_STACK_KB" ]]; then
     if ! ulimit -s "$EMU_STACK_KB" 2>/dev/null; then
@@ -151,13 +152,13 @@ _run_emu() {
         [[ "$ENABLE_DIFF" == "1" ]] && echo "[run-emu] diff    : $DIFF_SO"
         [[ "$ENABLE_WAVE" == "1" ]] && echo "[run-emu] wave    : $WAVE_PATH"
         [[ "$ENABLE_DB"   == "1" ]] && echo "[run-emu] db-dest : ${DB_DEST:-$LOG_DIR/${prog_name}_${ts}.db}"
-        echo "[run-emu] cmd     : $NOOP_HOME/build/emu ${emu_args[*]}"
-        "$NOOP_HOME/build/emu" "${emu_args[@]}" 2> "$err_log_file" | tee "$log_file"
+        echo "[run-emu] cmd     : $EMU_BIN ${emu_args[*]}"
+        "$EMU_BIN" "${emu_args[@]}" 2> "$err_log_file" | tee "$log_file"
     else
         local err_log_file="$LOG_DIR/emu-error.log"
         echo "[run-emu] err-log : $err_log_file"
-        echo "[run-emu] cmd     : $NOOP_HOME/build/emu ${emu_args[*]}"
-        "$NOOP_HOME/build/emu" "${emu_args[@]}" 2> "$err_log_file"
+        echo "[run-emu] cmd     : $EMU_BIN ${emu_args[*]}"
+        "$EMU_BIN" "${emu_args[@]}" 2> "$err_log_file"
     fi
 }
 

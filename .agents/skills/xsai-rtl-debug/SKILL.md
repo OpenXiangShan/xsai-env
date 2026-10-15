@@ -29,6 +29,9 @@ make run-emu-debug PAYLOAD=<payload> DIFF=1 WAVE_BEGIN=<cycle> WAVE_END=<cycle>
 ```
 
 The top-level wrapper around `XSAI/build/emu` lives in `scripts/run-emu.sh`.
+`build/emu` is DiffTest's backend-selection symlink. Set
+`EMU_BIN=/absolute/path/to/emu` to reuse an explicit cached binary; both
+`_ensure_emu` and the run wrapper honor it.
 
 ## Build and run flow
 
@@ -53,6 +56,14 @@ Important knobs:
 - `DIFF=1` enables difftest against the NEMU reference
 - `FORK=1` skips waveform dumping and keeps DB-only debugging faster
 - `DB_SELECT=lifetime` is the current default for ChiselDB capture
+
+Build-time `NO_DIFF=1` is not the same as runtime `DIFF=0`/`--no-diff`.
+It compiles out trap and instruction-count monitoring: neither `GOOD TRAP`
+nor the `-I` limit is available. For a bounded basic AM smoke test on such a
+binary, require every expected PASS message, no failure message, and the
+guest's `Exit with code = 0`, then stop only that worker. Record it as
+UART-gated no-diff validation, not a differential test or a natural emu exit.
+Use a cycle limit and a wall-clock timeout as backstops.
 
 ## Difftest expectations
 
