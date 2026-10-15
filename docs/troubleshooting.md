@@ -61,3 +61,54 @@ If this happened after switching environments, clean old rootfs app artifacts fi
 make -C firmware/riscv-rootfs clean
 make firmware
 ```
+
+## Board or emulator boots silently
+
+### Log
+
+The load and reset steps succeed, but the UART log never carries a single
+character after them. Not even the OpenSBI banner appears:
+
+```text
+Assert reset
+Load .../agent_payload.bin
+Deassert reset
+Start serial connection
+Escape key is ctrl+\ (SIGQUIT)
+```
+
+### Cause
+
+A QEMU GCPT payload (`firmware/gcpt_restore/build-qemu/build/gcpt.bin`) was
+loaded where the board or emulator flow was expected.
+
+`build-gcpt-qemu` produces OpenSBI with `OPENSBI_EMBED_DTB=0`: it expects a
+predecessor to place the DTB at `FW_PAYLOAD_FDT_ADDR`. The QEMU `-bios` flow
+provides one; the XDMA board loader does not. OpenSBI therefore finds no device
+tree, and a DTB-less OpenSBI has no console — so the board looks dead even
+though reset, load and PCIe all worked. The same payload rule applies to the RTL
+emulator, which likewise has no predecessor to supply a DTB.
+
+This is easy to reach by accident when invoking a low-level loader directly or
+passing the QEMU payload explicitly. The top-level variable remains
+`PAYLOAD ?= $(QEMU_PAYLOAD)` for QEMU/profile/checkpoint consumers, and loaders
+such as the CI `load_and_run_qdma.sh` accept any `.bin` without checking for an
+embedded DTB.
+
+### Recovery
+
+Build and load the embedded-DTB NEMU payload instead:
+
+```bash
+make -C firmware build-gcpt-nemu
+make run-fpga PAYLOAD=firmware/gcpt_restore/build-nemu/build/gcpt.bin
+```
+
+`make run-emu`, `make run-emu-debug`, `make run-fpga` and `make run-nemu` map
+the default `PAYLOAD` through `RUN_NEMU_PAYLOAD` and build the NEMU payload on
+demand, so the usual guard is to not pass `build-qemu/build/gcpt.bin`
+explicitly.
+
+A quick sanity check before spending a board slot: an embedded-DTB payload has
+an FDT magic (`d0 0d fe ed`) in its first few megabytes, a QEMU payload does
+not.

@@ -40,6 +40,12 @@ The default GCPT selection is the NEMU payload, not the QEMU payload. Explicit
 missing default payload; inspect recursive Make recipes before dry-running an
 orchestration target.
 
+The two variants differ in `OPENSBI_EMBED_DTB`. The NEMU payload embeds the DTB;
+the QEMU payload is built without one and expects the QEMU `-bios` flow to place
+it at `FW_PAYLOAD_FDT_ADDR`. Nothing in the board flow does that, so passing a
+QEMU payload explicitly boots the board silently — no OpenSBI banner, no console
+output at all. See `docs/troubleshooting.md`.
+
 The payload is SHA256-checked and atomically staged before reset. A matching
 remote payload is reused without upload. Only the script's uniquely named
 temporary helper/upload files and its own UART process group are cleaned up.

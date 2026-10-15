@@ -59,6 +59,9 @@ export FPGA_PCIE_BDF
 QEMU_DTB ?= $(XS_PROJECT_ROOT)/firmware/nemu_board/dts/build/xiangshan_ai.dtb
 RESTORER_BUILD_ROOT := $(GCPT_RESTORE_HOME)/restore-only
 RESTORER := $(RESTORER_BUILD_ROOT)/build/gcpt.bin
+# Board, NEMU and RTL emulator flows need the embedded-DTB payload. Keep the
+# public PAYLOAD default on QEMU for run-qemu/profile/ckpt, then translate only
+# these consumers through RUN_NEMU_PAYLOAD. Explicit PAYLOAD values are kept.
 RUN_NEMU_PAYLOAD = $(if $(filter $(QEMU_PAYLOAD),$(PAYLOAD)),$(NEMU_PAYLOAD),$(PAYLOAD))
 FPGA_RUN_SCRIPT := ./scripts/fpga-run-ai.sh
 FPGA_PROGRAM_SCRIPT := ./scripts/fpga-program-bitstream.sh
@@ -270,8 +273,8 @@ LOG       ?= 0
 EMU_SCRIPT := ./scripts/run-emu.sh
 EMU_FLAGS   = $(if $(filter 1,$(LOG)),--log,) $(if $(filter 1,$(DIFF)),--diff,)
 
-run-emu: _ensure_qemu_payload _ensure_emu
-	$(EMU_SCRIPT) $(EMU_FLAGS) $(PAYLOAD)
+run-emu: _ensure_nemu_payload _ensure_emu
+	$(EMU_SCRIPT) $(EMU_FLAGS) $(RUN_NEMU_PAYLOAD)
 
 # RTL debug shortcut — captures both FST waveform and ChiselDB in one pass.
 # Usage: make run-emu-debug PAYLOAD=<path> DIFF=1 WAVE_BEGIN=50000 WAVE_END=180000
@@ -287,13 +290,13 @@ _FORK_FLAG   = $(if $(filter 1,$(FORK)),--fork)
 _W_FLAG      = $(if $(WARMUP),-W $(WARMUP))
 _I_FLAG      = $(if $(MAX_INSTR),-I $(MAX_INSTR))
 
-run-emu-debug: _ensure_emu
+run-emu-debug: _ensure_nemu_payload _ensure_emu
 	$(EMU_SCRIPT) $(EMU_FLAGS) --log \
 	  $(if $(WARMUP),-W $(WARMUP)) \
 	  $(if $(MAX_INSTR),-I $(MAX_INSTR)) \
 	  $(_WAVE_FLAGS) $(_FORK_FLAG) \
 	  --db --db-select "$(DB_SELECT)" \
-	  $(PAYLOAD)
+	  $(RUN_NEMU_PAYLOAD)
 
 run-nemu: _ensure_nemu_payload _ensure_nemu
 	@case "$(RUN_NEMU_PAYLOAD)" in \
