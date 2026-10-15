@@ -51,4 +51,6 @@ for target in "${safe_dry_run_targets[@]}"; do
   make -n "$target" >/dev/null
 done
 
+python3 tests/test-emu-routing.py
+
 printf '[smoke] ok\n'

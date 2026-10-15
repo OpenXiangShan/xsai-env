@@ -230,8 +230,8 @@ emu-gsim:
 	$(MAKE) -C $(NOOP_HOME) gsim -j CONFIG=DefaultMatrixConfig WITH_DRAMSIM3=1 EMU_TRACE="fst" GSIM=1 CFLAGS="$(HOST_NO_CET_FLAG)" CXXFLAGS="$(HOST_NO_CET_FLAG)"
 
 test-matrix:
-	$(MAKE) -C ${AM_HOME}/tests/ame0.6 TOOLCHAIN=LLVM
-	$(MAKE) -C ${AM_HOME}/tests/ame0.6 TOOLCHAIN=LLVM  run-emu
+	$(MAKE) -C $(AM_HOME)/tests/ame-mmacc ARCH=riscv64-xs TOOLCHAIN=LLVM
+	$(MAKE) run-emu PAYLOAD=$(AM_HOME)/tests/ame-mmacc/build/ame-mmacc-riscv64-xs.bin
 
 update:
 	./scripts/update-submodule.sh
@@ -271,6 +271,9 @@ ccdb-append:
 DIFF      ?= 1
 LOG       ?= 0
 EMU_SCRIPT := ./scripts/run-emu.sh
+# DiffTest keeps this symlink for the selected Verilator/GSIM backend.
+EMU_BIN ?= $(NOOP_HOME)/build/emu
+export EMU_BIN
 EMU_FLAGS   = $(if $(filter 1,$(LOG)),--log,) $(if $(filter 1,$(DIFF)),--diff,)
 
 run-emu: _ensure_nemu_payload _ensure_emu
@@ -406,7 +409,8 @@ CKPT_COMMON_FLAGS = \
 	$(CKPT_ARGS)
 
 _ensure_emu:
-	@test -f $(NOOP_HOME)/build/emu || $(MAKE) emu-verilator
+	@test -x "$(EMU_BIN)" || $(MAKE) emu-verilator
+	@test -x "$(EMU_BIN)" || { echo "emu not found: $(EMU_BIN)" >&2; exit 1; }
 
 _ensure_xsai_init:
 	@missing=0; \
