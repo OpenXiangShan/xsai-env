@@ -66,6 +66,25 @@ The selected gate is basic bare-metal AME execution on the existing
 DRAMsim3/wave/ChiselDB, build-time `NO_DIFF=1`). It does not certify full
 Linux execution, every instruction, a new bitstream, or differential state.
 
+The forced emu gate completed on 2026-10-16. The binary was built on
+`node028`, copied to monitored `node023`, and run on physical cores `48-55`
+as one worker. Its SHA-256 is
+`1346a48f8f8eb301bc62884a0955174bc65dd31c9c948f1af9cfd5b99b99225e`.
+Every case printed its complete expected PASS set, no failure marker, and
+guest `Exit with code = 0`:
+
+| Case | Expected / observed checks | Payload SHA-256 |
+|---|---:|---|
+| `ame-zero-word` | 2 / 2 | `f2e43f4f3bccc8c5c2948f7a412147c1ef65e1badc78e7188e0a2369b380d412` |
+| `ame-ls-ab` | 4 / 4 | `905097c47cb34ca09301380965a8ff65f5e9e78753ece809adc84a68518b597f` |
+| `ame-gemm` | 1 / 1 | `4a5881af320ef2ced1fd91a83ef04fba85efd9f739c2e330e2963baf428ed05e` |
+| `ame-ls-word` | 4 / 4 | `b2cb8787a5f0f34f6a0ca667253189117d9b5792192dcdeba24f1d15e5d503c1` |
+| `ame-mmacc` | 5 / 5 | `2609e0e9b9eef0b14d64045b1cfa3d8864936fe565f9afa7025ff1bf89448bbc` |
+
+Because this emu was built with `NO_DIFF=1`, the harness intentionally
+stopped each worker after the guest completion marker; this is the
+UART-gated boundary described above, not a natural host exit or GOOD TRAP.
+
 The unchanged released software/firmware path has a separate cloud-FPGA
 acceptance: job **279983**, embedded-DTB NEMU payload SHA-256
 `9e38c96bdbe5529cd71568970417c7fec881c720b600b7adb831fb2eccc80976`.
