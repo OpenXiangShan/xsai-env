@@ -3,6 +3,7 @@
 SHELL := /bin/bash
 
 GIT_FORCE_INIT ?= 1
+INIT_OPTIONAL_SUBMODULES ?= 0
 
 XS_PROJECT_ROOT ?= $(shell pwd)
 NEMU_HOME ?= $(XS_PROJECT_ROOT)/NEMU
@@ -117,8 +118,9 @@ help:
 	@echo "Usage:"
 	@echo "  make deps        - Install system dependencies (requires sudo)"
 	@echo "  make init        - Initialize submodules and environment"
-	@echo "  make init-force  - Force initialize submodules to avoid empty folders"
-	@echo "  make llvm        - Build custom LLVM toolchain (uses system compiler)"
+	@echo "  make init-force  - Initialize required submodules; optional sources are skipped"
+	@echo "                     INIT_OPTIONAL_SUBMODULES=1 also tries AME LLVM/spec sources"
+	@echo "  make llvm        - Build AME LLVM from source (optional; prebuilt packages in README)"
 	@echo "  make gsim        - Install the latest gsim binary to local/bin"
 	@echo "  make test-smoke  - Run fast non-build smoke checks"
 	@echo "  make software-init - Initialize pinned AI framework sources and rootfs"
@@ -174,7 +176,7 @@ deps:
 	./scripts/setup-tools.sh
 
 init:
-	GIT_FORCE_INIT=$(GIT_FORCE_INIT) ./scripts/setup.sh
+	GIT_FORCE_INIT="$(GIT_FORCE_INIT)" INIT_OPTIONAL_SUBMODULES="$(INIT_OPTIONAL_SUBMODULES)" ./scripts/setup.sh
 
 init-force:
 	$(MAKE) init GIT_FORCE_INIT=1

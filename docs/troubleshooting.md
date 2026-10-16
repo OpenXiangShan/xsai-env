@@ -2,6 +2,26 @@
 
 Common failures, with logs and fixes.
 
+## Optional source repository cannot be cloned
+
+`llvm-project-ame` and `riscv-matrix-extension-spec` (local path:
+`riscv-matrix-spec`) may not yet support anonymous access while their public
+release is being prepared. These source checkouts are optional, not a reason
+to abandon software or simulator setup.
+
+Use `make init-force`, which skips them by default, and follow
+[Getting AME LLVM](../README.md#getting-ame-llvm) to install a prebuilt compiler.
+Do not use `git clone --recursive` or a blanket recursive submodule update as
+the bootstrap command: those commands bypass the optional-source handling.
+
+If you explicitly requested sources with `INIT_OPTIONAL_SUBMODULES=1`, a skipped
+source is informational. Its full Git diagnostics are in
+`log/setup/llvm-project-ame.log` or `log/setup/riscv-matrix-spec.log`. After
+obtaining access or fixing connectivity, rerun the same command.
+
+This exception applies only to optional sources. A failed NEMU, QEMU, XSAI, or
+firmware dependency still needs to be fixed; setup must not silently skip it.
+
 ## Rootfs artifacts from another toolchain
 
 ### Log

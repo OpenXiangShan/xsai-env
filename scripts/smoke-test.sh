@@ -52,5 +52,6 @@ for target in "${safe_dry_run_targets[@]}"; do
 done
 
 python3 tests/test-emu-routing.py
+python3 tests/test-setup.py
 
 printf '[smoke] ok\n'

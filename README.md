@@ -22,7 +22,7 @@ The supported workflow is the shared shell environment.
 ### 1. Clone and initialize
 
 ```bash
-git clone https://github.com/OurCompArchGroup/xsai-env
+git clone https://github.com/OpenXiangShan/xsai-env
 cd xsai-env
 
 # Optional on fresh Ubuntu/Debian hosts:
@@ -32,6 +32,51 @@ make init-force
 ```
 
 `make init-force` initializes the main submodules, runs the nested XSAI and firmware setup steps, and may take a while on a fresh checkout.
+
+Some optional source repositories, including `llvm-project-ame` and
+`riscv-matrix-extension-spec` (local path: `riscv-matrix-spec`), are still being
+prepared for public release and may not be anonymously cloneable. This is
+expected and does not mean your setup is broken. Default initialization skips
+these sources, so their access restrictions do not interrupt setup.
+
+You do not need to build the compiler from source: use a prebuilt AME LLVM
+package as described in [Getting AME LLVM](#getting-ame-llvm). The specification
+source can also be skipped; neither source checkout is required for normal
+software builds or simulator runs. Required runtime/build dependencies still
+need to be initialized.
+
+Source developers who have access can opt in:
+
+```bash
+make init-force INIT_OPTIONAL_SUBMODULES=1
+```
+
+If either optional repository is unavailable, initialization continues with a
+short notice. Full diagnostics are saved in `log/setup/<submodule>.log`.
+Failures of required components are still reported as errors.
+
+### Getting AME LLVM
+
+Download a prebuilt compiler from
+[AME LLVM releases](https://github.com/OurCompArchGroup/llvm-release/releases)
+instead of cloning `llvm-project-ame` or running `make llvm`. Choose a package
+matching your host and this checkout's Matrix ISA revision; a newer
+proposal-number package is not automatically compatible.
+
+Unpack the archive, then point `LLVM_HOME` at the directory containing
+`bin/clang`:
+
+```bash
+export LLVM_HOME=/absolute/path/to/extracted/llvm
+source env.sh
+export PATH="$LLVM_HOME/bin:$PATH"
+"$LLVM_HOME/bin/clang" --version
+```
+
+Alternatively, install it under `local/llvm`, the default `LLVM_HOME`. A custom
+location can be persisted in `.envrc.local` (see `.envrc.local.example`).
+The AME compiler is separate from the RISC-V GCC/sysroot used for Linux and
+firmware; keep that toolchain configured as well.
 
 ### 2. Load the environment
 
@@ -99,7 +144,7 @@ make test            # Heavier manual-environment sanity test
 ### Toolchains and simulators
 
 ```bash
-make llvm            # Build custom LLVM/Clang with AME support -> local/llvm
+make llvm            # Optional source build; normally use prebuilt AME LLVM above
 make nemu            # Build NEMU
 make qemu            # Build qemu-system-riscv64 and qemu-riscv64
 make xsai            # Build XSAI Verilator simulation
