@@ -1,4 +1,4 @@
-.PHONY: help deps init init-force llvm gsim smoke test-smoke update test clean distclean nemu xsai test-matrix qemu run-qemu run-fpga fpga-reset firmware versions simpoint profile cluster ckpt uniform ccdb ccdb-append pldm _ensure_qemu _ensure_qemu_user _ensure_qemu_plugin _ensure_firmware _ensure_qemu_dtb _ensure_xsai_init _ensure_fpga_payload docker-nemu-image nemu-matrix-ref-so-docker
+.PHONY: help deps init init-force llvm gsim smoke test-smoke update test clean distclean nemu xsai test-matrix qemu run-qemu run-fpga fpga-reset firmware versions simpoint profile cluster ckpt uniform ccdb ccdb-append pldm _ensure_qemu _ensure_qemu_user _ensure_qemu_plugin _ensure_firmware _ensure_qemu_dtb _ensure_xsai_init _ensure_fpga_payload _ensure_test_dependencies docker-nemu-image nemu-matrix-ref-so-docker
 
 SHELL := /bin/bash
 
@@ -240,8 +240,11 @@ update:
 versions:
 	./scripts/update-versions.sh
 
-test:
+test: _ensure_test_dependencies
 	./scripts/env-test.sh
+
+_ensure_test_dependencies:
+	./scripts/ensure-test-deps.sh
 # Build model passthrough flags (only override when user set non-default values)
 _LLAMA_EXTRA :=
 ifneq ($(LLAMA_MODEL_PRESET),stories15M)

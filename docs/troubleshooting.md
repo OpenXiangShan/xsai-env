@@ -2,6 +2,22 @@
 
 Common failures, with logs and fixes.
 
+## `make test` reports that NutShell is missing
+
+`NutShell` is a required dependency of the full environment test, but its
+submodule entry uses `update = none` so broad initialization commands do not
+fetch it accidentally. Running `make test` now checks for
+`NutShell/Makefile` and initializes the pinned checkout on demand, including
+the explicit checkout override needed for that policy.
+
+If the automatic step cannot access the public submodule, retry the command
+shown by the error:
+
+```bash
+git submodule update --init --checkout NutShell
+make test
+```
+
 ## Optional source repository cannot be cloned
 
 `llvm-project-ame` and `riscv-matrix-extension-spec` (local path:

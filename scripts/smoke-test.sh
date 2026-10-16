@@ -17,6 +17,7 @@ for script in \
   scripts/env-common.sh \
   scripts/setup.sh \
   scripts/build-llvm.sh \
+  scripts/ensure-test-deps.sh \
   scripts/env-test.sh \
   scripts/setup-tools.sh \
   scripts/install-gsim.sh \
@@ -53,5 +54,6 @@ done
 
 python3 tests/test-emu-routing.py
 python3 tests/test-setup.py
+python3 tests/test-nutshell-dependency.py
 
 printf '[smoke] ok\n'
