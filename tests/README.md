@@ -15,6 +15,9 @@ There are already many component-local tests elsewhere:
   initialization, non-interactive optional failures, full-log retention, force
   propagation, user mode, and missing LLVM source guidance. Runs through
   `make test-smoke` with stubbed Git/nested Make commands; no network or build.
+- `test-nutshell-dependency.py`: host-only coverage for the `make test`
+  on-demand NutShell initializer, including idempotence and clear failure
+  handling. It uses a stubbed Git command and does not access the network.
 - End-to-end or cross-subsystem validation
 - Regression coverage for repository integration points
 - Documentation of what should be tested for each workstream
