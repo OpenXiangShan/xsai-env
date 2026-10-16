@@ -5,6 +5,10 @@
 - Use the top-level `Makefile` from the repo root.
 - Default to the shared shell environment: `source env.sh` for one-shot shells, or `direnv allow` if direnv is already part of the user's workflow.
 - Run `make init-force` before the first heavy build on a fresh checkout.
+- Default initialization skips optional AME LLVM/specification sources that may
+  not yet be publicly accessible. Recommend prebuilt AME LLVM from README;
+  use `INIT_OPTIONAL_SUBMODULES=1` only for source development with access.
+  Do not replace this entrypoint with a blanket recursive clone/update.
 - Use `make gsim` only when the task explicitly needs `gsim`; it downloads the latest upstream release into `local/bin`.
 
 ## Environment

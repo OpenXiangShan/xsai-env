@@ -11,6 +11,10 @@ There are already many component-local tests elsewhere:
 
 ## Scope
 
+- `test-setup.py`: host-only smoke coverage for required versus optional source
+  initialization, non-interactive optional failures, full-log retention, force
+  propagation, user mode, and missing LLVM source guidance. Runs through
+  `make test-smoke` with stubbed Git/nested Make commands; no network or build.
 - End-to-end or cross-subsystem validation
 - Regression coverage for repository integration points
 - Documentation of what should be tested for each workstream

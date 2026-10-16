@@ -4,6 +4,14 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+if [[ ! -f "$ROOT/llvm-project-ame/llvm/CMakeLists.txt" ]]; then
+  echo "[llvm] Optional AME LLVM source is not initialized; this is normal for prebuilt-toolchain users." >&2
+  echo "[llvm] Use the prebuilt compiler: README.md -> Getting AME LLVM." >&2
+  echo "[llvm] To build from source with repository access, first run:" >&2
+  echo "  make init-force INIT_OPTIONAL_SUBMODULES=1" >&2
+  exit 1
+fi
+
 # ---------------------------------------------------------------------------
 # Detect RISC-V cross compiler
 # Priority: 1) RISCV toolchain root  2) RISCV_TOOLCHAIN_PREFIX  3) compiler on PATH
