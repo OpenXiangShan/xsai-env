@@ -13,7 +13,7 @@ worktree to this archive or combine alternatives by cherry-picking them together
 | `OpenXiangShan/qemu` | `archive/mxfp4-prefill-20261123` | `c08ee60beed86137201a95f980d9f0ce181671a4` | Experimental MXFP functional emulation |
 | `OpenXiangShan/NEMU` | `archive/mxfp4-prefill-20261123` | `a470913fa2ceab325d554f8855984cb81a68d01a` | MXFP architectural reference and directed test source |
 | `OurCompArchGroup/llvm-project-ame` (requires access) | `archive/mxfp4-prefill-20261123` | `372bc8d4c9f1b58c7cdab2acb2b3f7f8eb18e140` | `mlascale`/`mlbscale` mnemonics and MC tests |
-| `OurCompArchGroup/llama.cpp` | `archive/mxfp4-packed-r75-20261123` | `2d76560a2fbc7c68863d6165c79c5d024107d84b` | Frozen R75 batch8/packed source (`c72662b7e17ff857e1dafca38a6b6fe1c1f6c449`), followed by the shared-QKV source overlay |
+| `OurCompArchGroup/llama.cpp` | `archive/mxfp4-packed-r75-20261123` | `51712f8e19b7c1d2455561ba925c32d574651e98` | R75 batch8/packed (`c72662b7e17ff857e1dafca38a6b6fe1c1f6c449`), shared-QKV overlay (`2d76560a2fbc7c68863d6165c79c5d024107d84b`), then the opt-in startup LUT correction |
 | `OurCompArchGroup/nexus-am-ame` | `archive/mxfp4-packed-r75-20261123` | `697482dc29aaf392d38a6bc6be0e6f83ffb57e34` | Exact `tests/ame-gemm/matop.S` for that R75 build |
 | `OurCompArchGroup/llama.cpp` | `archive/mxfp4-model-prefill-20261123` | `8b5326a6119658d0784d62eff20dc544bc896776` | Native MXFP4 layout R3, phase-off model-control source overlays, and the separate Stories attention screen |
 
@@ -21,7 +21,7 @@ For example, in a separate initialized `xsai-env` checkout:
 
 ```sh
 git -C software/llama.cpp fetch --no-tags origin refs/heads/archive/mxfp4-packed-r75-20261123
-git -C software/llama.cpp checkout --detach 2d76560a2fbc7c68863d6165c79c5d024107d84b
+git -C software/llama.cpp checkout --detach 51712f8e19b7c1d2455561ba925c32d574651e98
 git -C nexus-am fetch --no-tags origin refs/heads/archive/mxfp4-packed-r75-20261123
 git -C nexus-am checkout --detach 697482dc29aaf392d38a6bc6be0e6f83ffb57e34
 sha256sum nexus-am/tests/ame-gemm/matop.S
@@ -31,6 +31,10 @@ The expected assembly SHA-256 is
 `26ee87667ec98d831cbaa8735fdeee577265d197a5386bf65dcc9b336cbf9530`.
 The R75 static RV64/RVV build opts into `GGML_RV_AME` and `GGML_RV_MXFP4_PACKED`;
 set `GGML_RV_MXFP4_PACKED_ASM` to the absolute path of that exact assembly.
+For the corrected real-prefix build, pass `-DGGML_AME_FP16_LUT_INTEGER_NONFINITE=1`
+to the C compiler for `ggml-cpu.c` in both arms. It avoids a startup exception
+from the nonfinite FP16 LUT entries without clearing FCSR. Do not enable the
+startup trace macro or assume this commit enables the masked Softmax variant.
 Reuse the existing cross-toolchain configuration and CMake `test-quantize-fns`
 target. This map restores source, not the original host toolchain or a
 byte-identical ELF. The authorized raw receipts retain the configure args,
@@ -59,7 +63,7 @@ toolchain, link inputs, or production ELF.
 
 ## Validation boundary
 
-The latest bounded Stories15M real-GGUF PP256 functional witness used
+The completed Stories15M real-GGUF PP256 fallback witness used
 `GGML_AME_RMSNORM_MXFP4=pipeline` vs `pipeline+qkv`. The latter ran one shared
 pack, skipped two redundant packs, and completed Q/V/K byte-for-byte with the
 K288 `256+32` tail. Natural FCSR `0x17` took the original quantizer fallback in
@@ -67,6 +71,13 @@ QEMU, so this is **not** a `PACK_MX` instruction hit. The earlier Qwen3-0.6B
 bounded witness completed Q and V but timed out before K completed. Neither is
 DUT timing or a prefill checkpoint. The independent short-screen experiments
 are not silently enabled by these archive branches.
+
+With the LUT correction and scalar `zfh=true` in the local QEMU CPU options,
+both true PP256 models entered `ggml_ame_begin_rmsnorm_qkv` and reached
+`PACK_MX` (`0x0e8810fb` at ELF offset `0x2f5a80`) without forcing FCSR. The
+local emulator trapped on that instruction. This proves the real dispatch
+can reach the packed branch, not instruction retirement or Q/V/K completion
+on that branch. The hardware timing gates remain closed.
 
 The budget admission, result collector and ledger tooling is in this parent
 branch; see [agent workflow](agent-workflow.md#prefill-campaigns). Use only
