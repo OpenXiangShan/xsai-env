@@ -15,6 +15,7 @@ worktree to this archive or combine alternatives by cherry-picking them together
 | `OurCompArchGroup/llvm-project-ame` (requires access) | `archive/mxfp4-prefill-20261123` | `372bc8d4c9f1b58c7cdab2acb2b3f7f8eb18e140` | `mlascale`/`mlbscale` mnemonics and MC tests |
 | `OurCompArchGroup/llama.cpp` | `archive/mxfp4-packed-r75-20261123` | `2d76560a2fbc7c68863d6165c79c5d024107d84b` | Frozen R75 batch8/packed source (`c72662b7e17ff857e1dafca38a6b6fe1c1f6c449`), followed by the shared-QKV source overlay |
 | `OurCompArchGroup/nexus-am-ame` | `archive/mxfp4-packed-r75-20261123` | `697482dc29aaf392d38a6bc6be0e6f83ffb57e34` | Exact `tests/ame-gemm/matop.S` for that R75 build |
+| `OurCompArchGroup/llama.cpp` | `archive/mxfp4-model-prefill-20261123` | `8b5326a6119658d0784d62eff20dc544bc896776` | Native MXFP4 layout R3, phase-off model-control source overlays, and the separate Stories attention screen |
 
 For example, in a separate initialized `xsai-env` checkout:
 
@@ -34,6 +35,27 @@ Reuse the existing cross-toolchain configuration and CMake `test-quantize-fns`
 target. This map restores source, not the original host toolchain or a
 byte-identical ELF. The authorized raw receipts retain the configure args,
 compile database, source hashes and diagnostic witness.
+
+## Model prefill control and attention screen
+
+Fetch `refs/heads/archive/mxfp4-model-prefill-20261123` in `software/llama.cpp`
+to recover three separate source commits:
+
+- `099819498336565ce1d651ed97757683a41330f0`: R3 native MXFP4 layout sources
+  plus the exact `test-quantize-fns` fixture. This is the model-control
+  lineage, not the shared-QKV experiment.
+- `87635086191a34087874ea268cdd3cc796db87e9`: phase-off real-model control
+  sources for FP16 LUT nonfinite handling and masked RVV Softmax. The recorded
+  build selected `GGML_AME_FP16_LUT_INTEGER_NONFINITE=1` and
+  `GGML_AME_RVV_SOFTMAX_MASKED_EXP=1`; startup diagnostics were off. The LUT
+  source can be used in both fusion arms without clearing the caller's FCSR.
+- `8b5326a6119658d0784d62eff20dc544bc896776`: the exact `sgemm.cpp` from the
+  synthetic Stories screen. Its relink selected `GGML_XSAI_RVV_F16_STORIES_TILE23=1`
+  and `GGML_XSAI_RVV_F16_STORIES_KQV_ZERO_SUFFIX=1`. Do not count it as a real-model gain.
+
+Checkout `87635086191a34087874ea268cdd3cc796db87e9` to omit the attention
+variant. These commits recover byte-verified sources, not the original
+toolchain, link inputs, or production ELF.
 
 ## Validation boundary
 
