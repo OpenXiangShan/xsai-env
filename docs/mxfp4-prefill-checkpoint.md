@@ -79,6 +79,34 @@ local emulator trapped on that instruction. This proves the real dispatch
 can reach the packed branch, not instruction retirement or Q/V/K completion
 on that branch. The hardware timing gates remain closed.
 
+## Real-model K-stop witness
+
+The untimed diagnostic sources are archived separately from the production
+overlays, on `archive/mxfp4-r75-kstop-20261124` in these two repositories:
+
+| Owner | Commit | Existing entrypoint |
+| --- | --- | --- |
+| `OurCompArchGroup/llama.cpp` | `c9b775343b8334fafa8af319b207fe653fe8eb70` | `llama-bench` eval callback and AME native output, pack and FCSR capture; two source files match the retained witness overlays |
+| `OurCompArchGroup/riscv-rootfs` | `a5e31937d41574e0d6f388c681aa13b755f81df1` | `run_llama_bench_full` readout; the function matches the staged Linux guest, not the whole rootfs tree |
+
+Use the R75 build flags and exact PACK assembly identified above. Both arms use
+the same witness with true GGUF, PP256/T1/B256/UB256/N0, no warmup, and one rep.
+Set `LLAMA_BENCH_QKV_PREFIX_OUT` to a fresh writable prefix and
+`GGML_AME_MXFP4_REUSE_ACTIVATION=0` in both arms. Compare
+`GGML_AME_RMSNORM_MXFP4=pipeline` against `pipeline+qkv`. Enable the AME
+summary (`GGML_AME_PROFILE=1`); keep per-node detail and progress off.
+
+The staged guest images were read back, not executed. Require
+`QKV_PREFIX_DONE third_projection=1`, matching lengths and SHA-256 for the six
+Q/V/K dumps, matching natural FCSR and errno, and three distinct native
+weight keys. Stories must include K288 `256+32`; B must report one shared
+producer, three native completions and two skips. For the exact retained NEMU
+(`9034d54ee09f5858db02d4fb244a0e25a6e1859ec06d16bb89e5c28c23d40a23`),
+the `PACK_MX` handler return is `0x411240`. Stories has 6,912 expected return
+hits in A and 2,304 in B if all rows take PACK (256 rows × 9 K32 blocks ×
+three or one packs). A return count is not a cycle sample. Keep the witness
+out of all timed builds and ledger credit.
+
 The budget admission, result collector and ledger tooling is in this parent
 branch; see [agent workflow](agent-workflow.md#prefill-campaigns). Use only
 prefill samples, keep leaf evidence out of model credit, and do not reopen the
