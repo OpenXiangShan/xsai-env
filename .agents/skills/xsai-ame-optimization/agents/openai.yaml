@@ -1,0 +1,4 @@
+interface:
+  display_name: "XSAI AME Optimization"
+  short_description: "Optimize XSAI prefill on AM bare metal"
+  default_prompt: "Use $xsai-ame-optimization to extract this XSAI prefill workload's production hotspots, screen short AM bare-metal PLDM pairs, and gate end-to-end checkpoints on cumulative cycle savings."
