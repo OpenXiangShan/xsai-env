@@ -33,6 +33,17 @@ make init-force
 
 `make init-force` initializes the main submodules, runs the nested XSAI and firmware setup steps, and may take a while on a fresh checkout.
 
+On `feat/mxfp4-mainline`, `make init` checks out the exact commits recorded by
+the parent and nested gitlinks. Detached submodule HEADs are expected. The
+`branch` entries in `.gitmodules` are for explicit branch updates; they do not
+make initialization float to whichever commit was pushed most recently.
+
+To work on a particular root dependency rather than reproduce the pinned
+stack, use `bash scripts/update-submodule.sh <module-name>`. For example, pass
+`software-llama` to check out its configured branch and set up local tracking.
+For nested updates, work in the owning repository, publish the leaf commit
+first, then update its parent's gitlink. See [Git Workflow](docs/git-workflow.md).
+
 Some optional source repositories, including `llvm-project-ame` and
 `riscv-matrix-extension-spec` (local path: `riscv-matrix-spec`), are still being
 prepared for public release and may not be anonymously cloneable. This is
