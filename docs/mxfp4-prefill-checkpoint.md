@@ -1,9 +1,63 @@
 # MXFP prefill source checkpoint — 2026-11-23
 
-These are recovery branches, not an integration release or a pull request. The
-parent gitlinks and `VERSIONS` are intentionally unchanged. Use a separate
-checkout and fetch the owning revisions from the table; do not reset a live
-worktree to this archive or combine alternatives by cherry-picking them together.
+## Collaboration checkout
+
+Use `OpenXiangShan/xsai-env:feat/mxfp4-integration` to work on the MXFP source
+snapshot. This branch fixes the top-level gitlinks and `VERSIONS` together; its
+XSAI and CUTE gitlinks also fix the nested dependencies. It is not a validated
+release. The archive refs below are unchanged.
+
+| Path | Owning GitHub repository | Branch to fetch | Pinned commit |
+| --- | --- | --- | --- |
+| `XSAI` | `OpenXiangShan/XSAI` | `feat/mxfp4-collab` | `5a2ee2d2ad8cc6713c90de381747e96f0b60bbfd` |
+| `XSAI/CUTE` | `OpenXiangShan/CUTE` | `feat/mxfp4-collab` | `860f37961584c09b0651e927798dc83c926ced76` |
+| `XSAI/CUTE/cute-fpe` | `OpenXiangShan/CUTEFPE` | `feat/mxfp4-collab` | `7368603c559446fd6e84292121bd5a43f9e8115d` |
+| `XSAI/CUTE/XSAICache` | `OpenXiangShan/XSAICache` | `feat/mxfp4-collab-cute` | `3a40ffd93aa1fdbf1f4a1994806eaecfc7790090` |
+| `XSAI/XSAICache` | `OpenXiangShan/XSAICache` | `feat/mxfp4-collab-xsai` | `d2d0893ac4556ed1a25139b9024305ef2a4e6c89` |
+| `XSAI/difftest` | `OpenXiangShan/difftest` | `feat/mxfp4-collab` | `051dfd3a5b663d79c5498a585bdb8f42a299493c` |
+| `NEMU` | `OpenXiangShan/NEMU` | `archive/mxfp4-prefill-20261123` | `a470913fa2ceab325d554f8855984cb81a68d01a` |
+| `qemu` | `OpenXiangShan/qemu` | `feat/mxfp4-collab` | `741916e23ed884feeb68e57cd4019850155e5197` |
+| `nexus-am` | `OurCompArchGroup/nexus-am-ame` | `feat/mxfp4-collab` | `1c88b7f0a58b2e424dbb97516bb4ebc1b18f2739` |
+| `software/llama.cpp` | `OurCompArchGroup/llama.cpp` | `feat/mxfp4-collab` | `43336c9b35999a85c097f1db00a4007debb1cdf4` |
+| `firmware/riscv-rootfs` | `OurCompArchGroup/riscv-rootfs` | `archive/mxfp4-prefill-20261123` | `4fa51538a2a822591b06d0eb06a331ab815fb38c` |
+| `llvm-project-ame` | `OurCompArchGroup/llvm-project-ame` | `archive/mxfp4-prefill-20261123` | `372bc8d4c9f1b58c7cdab2acb2b3f7f8eb18e140` |
+| `riscv-matrix-spec` | `OurCompArchGroup/riscv-matrix-extension-spec` | `feat/mxfp4-collab` | `9499d593f122bb7a344fdfaeab7af13ab35b0f0d` |
+
+Start in a separate checkout. Use the recorded gitlinks, not `--remote`:
+
+```sh
+git clone --single-branch --branch feat/mxfp4-integration https://github.com/OpenXiangShan/xsai-env.git
+cd xsai-env
+git submodule update --init -- XSAI NEMU qemu nexus-am riscv-matrix-spec firmware/riscv-rootfs software/llama.cpp
+```
+
+For RTL work, initialize XSAI using its own `make -C XSAI init-force`. For the
+custom compiler, readers with GitHub access to `llvm-project-ame` can initialize
+it with `git submodule update --init --checkout -- llvm-project-ame`.
+
+The snapshot includes four scale banks per CUTE side, the matching difftest
+schema and AM regressions, the QEMU scale/stride/trap fixes, and the native
+GGML MXFP path with its first-load `mfence` and opt-in RMSNorm/quantize/QKV
+pipeline. The two cache pins are different on purpose: XSAI and standalone
+CUTE use their respective masked-store implementations.
+
+- NEMU's gitlink is the MXFP architectural reference. It does not contain the
+  source of the exact R75 `PACK_MX` handler in the retained emulator. The
+  rootfs pin has opt-in workload entrypoints but does not build or install the
+  separate packed binaries by itself. There is no full-stack PACK release.
+- The combined AM `matop.S` contains the guarded R75 PACK section and newer
+  directed tests, so its whole-file hash differs from the exact R75 archive.
+  Use the archive hashes below to reconstruct that older source pair.
+- The historical four-bank full-core check closed the directed scale-register
+  hang; it is not byte-for-byte validation of this RTL snapshot. The assembled
+  pins have not been rerun together. No end-to-end speedup, board-level memory
+  ordering proof, or larger padded-output correctness is claimed.
+
+## Recovery refs
+
+Use the archived revisions for the historical diagnostic and build inputs.
+Do not reset a live worktree to an archive or combine independent controls by
+cherry-picking them together.
 
 | Owner | Branch | Commit | Contents |
 | --- | --- | --- | --- |
