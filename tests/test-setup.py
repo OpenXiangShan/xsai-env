@@ -87,13 +87,16 @@ class Setup(unittest.TestCase):
         result = self.run_setup(FAIL_OPTIONAL="1")
         self.assertEqual(result.returncode, 0, result.stderr)
         commands = self.commands("git")
-        self.assertEqual(len(commands), 2)
+        self.assertEqual(len(commands), 3)
         for call in commands:
             self.assertNotIn("--force", call["args"])
             for optional in OPTIONAL:
                 self.assertNotIn(optional, call["args"])
-        for required in ("NEMU", "qemu", "nexus-am", "XSAI"):
+        for required in ("NEMU", "nexus-am", "software/llama.cpp", "XSAI"):
             self.assertTrue(any(required in call["args"] for call in commands))
+        qemu = next(call for call in commands if "qemu" in call["args"])
+        self.assertEqual(qemu["args"],
+                         ["submodule", "update", "--init", "--depth", "1", "qemu"])
         self.assertEqual([call["args"] for call in self.commands("make")],
                          [["-C", "XSAI", "init-force"],
                           ["-C", "firmware", "init-force"]])
@@ -135,7 +138,7 @@ class Setup(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         commands = self.commands("git")
-        self.assertEqual(len(commands), 4)
+        self.assertEqual(len(commands), 5)
         self.assertTrue(all("--force" in call["args"] for call in commands))
 
     def test_required_source_failure_is_not_hidden(self):
@@ -152,14 +155,14 @@ class Setup(unittest.TestCase):
                                 INIT_OPTIONAL_SUBMODULES="1")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("nested initialization failed", result.stderr)
-        self.assertEqual(len(self.commands("git")), 2)
+        self.assertEqual(len(self.commands("git")), 3)
         self.assertEqual(len(self.commands("make")), 1)
 
     def test_user_mode_keeps_its_required_only_route(self):
         result = self.run_setup("user", INIT_OPTIONAL_SUBMODULES="1")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual([call["args"] for call in self.commands("git")],
-                         [["submodule", "update", "--init", "qemu"]])
+                         [["submodule", "update", "--init", "--depth", "1", "qemu"]])
         self.assertEqual([call["args"] for call in self.commands("make")],
                          [["-C", "firmware", "init", "GIT_FORCE_INIT=0"]])
 
