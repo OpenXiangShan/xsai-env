@@ -44,6 +44,14 @@ stack, use `bash scripts/update-submodule.sh <module-name>`. For example, pass
 For nested updates, work in the owning repository, publish the leaf commit
 first, then update its parent's gitlink. See [Git Workflow](docs/git-workflow.md).
 
+The MXFP matrix and supplied-scale RVV paths are experimental opt-ins. Check
+MXFP with the matching NEMU AMU snapshot v2 reference and normal Difftest
+(`DIFFTEST_FAST_REF=0`, without squash, replay, or basic-only checking). The
+supplied-scale RVV instruction is not the archived R75 `PACK_MX` instruction;
+leave `GGML_RV_MXFP4_PACKED` off unless using an explicitly validated target.
+The [prefill archive](docs/mxfp4-prefill-checkpoint.md) is for recovery, not a
+validation record for the current pins.
+
 Some optional source repositories, including `llvm-project-ame` and
 `riscv-matrix-extension-spec` (local path: `riscv-matrix-spec`), are still being
 prepared for public release and may not be anonymously cloneable. This is

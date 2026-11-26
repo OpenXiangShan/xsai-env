@@ -1,9 +1,9 @@
 # MXFP prefill source checkpoint — 2026-11-23
 
-These are recovery branches, not an integration release or a pull request. The
-parent gitlinks and `VERSIONS` are intentionally unchanged. Use a separate
-checkout and fetch the owning revisions from the table; do not reset a live
-worktree to this archive or combine alternatives by cherry-picking them together.
+These are recovery branches, not the pins of `feat/mxfp4-mainline`. For the
+installed component revisions, use the parent gitlinks and `VERSIONS`. To
+reproduce an archived experiment, fetch the owning revisions in a separate
+checkout; do not reset the integration worktree or combine alternative overlays.
 
 | Owner | Branch | Commit | Contents |
 | --- | --- | --- | --- |
