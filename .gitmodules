@@ -5,7 +5,7 @@
 [submodule "nexus-am"]
 	path = nexus-am
 	url = https://github.com/OurCompArchGroup/nexus-am-ame.git
-	branch = feat-matrix
+	branch = feat/mxfp4-mainline
 [submodule "DRAMsim3"]
 	path = DRAMsim3
 	url = https://github.com/OpenXiangShan/DRAMsim3.git
@@ -22,17 +22,17 @@
 [submodule "llvm-project-ame"]
 	path = llvm-project-ame
 	url = https://github.com/OurCompArchGroup/llvm-project-ame.git
-	branch = triton-commit-hash
+	branch = feat/mxfp4-mainline
 	shallow = true
 	update = none
 [submodule "riscv-matrix-spec"]
 	path = riscv-matrix-spec
 	url = https://github.com/OurCompArchGroup/riscv-matrix-extension-spec.git
-	branch = master
+	branch = feat/mxfp4-mainline
 [submodule "qemu"]
 	path = qemu
 	url = https://github.com/OpenXiangShan/qemu
-	branch = 9.0.0_matrix-v0.6
+	branch = feat/mxfp4-mainline
 	shallow = true
 [submodule "firmware/opensbi"]
 	path = firmware/opensbi
@@ -43,7 +43,7 @@
 [submodule "firmware/riscv-rootfs"]
 	path = firmware/riscv-rootfs
 	url = https://github.com/OurCompArchGroup/riscv-rootfs.git
-	branch = checkpoint
+	branch = feat/mxfp4-mainline
 [submodule "firmware/nemu_board"]
 	path = firmware/nemu_board
 	url = https://github.com/OpenXiangShan/nemu_board.git
@@ -75,4 +75,4 @@
 [submodule "software-llama"]
 	path = software/llama.cpp
 	url = https://github.com/OurCompArchGroup/llama.cpp.git
-	branch = feat/ame-matmul-opt
+	branch = feat/mxfp4-mainline
