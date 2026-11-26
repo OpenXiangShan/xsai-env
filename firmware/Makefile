@@ -34,8 +34,8 @@ COMBINED_PAYLOAD ?= $(INITRAMFS_BUILD_DIR)/combined_payload.bin
 INITRAMFS_LAYOUT := $(INITRAMFS_BUILD_DIR)/layout.txt
 INITRAMFS_ALIGN ?= 1048576
 INITRAMFS_GAP ?= 2097152
-# GCPT jumps to OpenSBI at 0x80100000; FW_PAYLOAD_OFFSET is 0x100000.
-LINUX_LOAD_ADDR := 0x80200000
+# GCPT jumps to OpenSBI at 0x80100000; Linux follows at its Image text offset.
+OPENSBI_LOAD_ADDR := 0x80100000
 SOURCE_DATE_EPOCH ?= 0
 
 -include $(RISCV_ROOTFS_HOME)/riscv-lib-paths.mk
@@ -467,13 +467,13 @@ $(COMBINED_PAYLOAD): build-external-initramfs
 	   extent=struct.unpack_from("<Q",h,16)[0]; a=int(sys.argv[3]); gap=int(sys.argv[4]); \
 	   assert extent and a>0 and gap>=0, "Invalid Image extent/alignment/gap"; \
 	   off=((max(os.path.getsize(p),extent)+a-1)//a)*a+gap; \
-	   size=os.path.getsize(sys.argv[2]); start=int(sys.argv[5],0)+off; end=start+size; \
+	   size=os.path.getsize(sys.argv[2]); start=int(sys.argv[5],0)+struct.unpack("<Q",h[8:16])[0]+off; end=start+size; \
 	   assert size>0 and end<=int(sys.argv[6],0)+int(sys.argv[7],0), "Initramfs exceeds guest RAM"; \
 	   dma=int(sys.argv[8],0); dmaend=dma+int(sys.argv[9],0); \
 	   assert end<=dma or start>=dmaend, "Initramfs overlaps direct-map memory"; \
 	   print(off,size,hex(start),hex(end))' \
 	  "$(LINUX_IMAGE)" "$(INITRAMFS_CPIO)" "$(INITRAMFS_ALIGN)" "$(INITRAMFS_GAP)" \
-	  "$(LINUX_LOAD_ADDR)" "$(XSAI_RAM_BASE)" "$(XSAI_MEMORY_SIZE)" \
+	  "$(OPENSBI_LOAD_ADDR)" "$(XSAI_RAM_BASE)" "$(XSAI_MEMORY_SIZE)" \
 	  "$(XSAI_DIRECT_MAP_MEM_START)" "$(XSAI_DIRECT_MAP_MEM_SIZE)"); \
 	tmp=$$(mktemp "$@.XXXXXX"); trap 'rm -f "$$tmp"' EXIT; \
 	cp "$(LINUX_IMAGE)" "$$tmp"; \
@@ -560,9 +560,8 @@ build-opensbi-nemu:
 		OPENSBI_BUILD_LOG=$(OPENSBI_NEMU_BUILD_LOG)
 
 # Keep OpenSBI O= build roots for incremental rebuilds. The previous
-# rm -rf "$(OPENSBI_BUILD_ROOT)" workaround avoided occasional stale firmware
-# link artifacts, but it forced full QEMU/NEMU OpenSBI rebuilds on every run.
-# Clean the affected build root explicitly if the stale-link issue reappears.
+# payload input stamp invalidates only the generated payload objects/linker
+# script when the embedded inputs or layout change.
 _build-opensbi:
 	@echo "Building OpenSBI firmware..."
 	@if [ ! -f "$(OPENSBI)/Makefile" ]; then \
@@ -585,12 +584,32 @@ _build-opensbi:
 	@set -euo pipefail; git -C "$(OPENSBI)" archive HEAD | tar -C "$(OPENSBI_PATCHED_SRC)" -xf -
 	@echo "Applying OpenSBI patches to generated source..."
 	@bash $(WORK_DIR)/opensbi-patches/apply-opensbi-patches.sh "$(OPENSBI_PATCHED_SRC)"
-	@FW_SIZE=$$(stat -c%s $(OPENSBI_FW_PAYLOAD)) && \
+	@set -euo pipefail; \
+	 FW_SIZE=$$(stat -c%s "$(OPENSBI_FW_PAYLOAD)"); \
+	 FW_TEXT_OFFSET=$$(python3 -c \
+	   "import struct,sys; d=open(sys.argv[1],'rb').read(64); \
+	    assert len(d)==64 and d[56:60]==b'RSC\\x05', 'Expected a RISC-V Linux Image header'; \
+	    print(hex(struct.unpack('<Q', d[8:16])[0]))" "$(LINUX_IMAGE)"); \
 	 FW_FDT_ADDR=$$(python3 -c \
-	   "sz=$$FW_SIZE; print(hex(((sz+0x800000+0xfffff)//0x100000)*0x100000+0x80000000))") && \
-	 OPENSBI_VERSION_GIT=$$(git -C "$(OPENSBI)" describe --always --tags 2>/dev/null || true) && \
-	 echo "  Image size     : $$FW_SIZE bytes" && \
-	 echo "  FW_PAYLOAD_FDT_ADDR: $$FW_FDT_ADDR" && \
+	   "sz=$$FW_SIZE; print(hex(((sz+0x800000+0xfffff)//0x100000)*0x100000+0x80000000))"); \
+	 OPENSBI_VERSION_GIT=$$(git -C "$(OPENSBI)" describe --always --tags 2>/dev/null || true); \
+	 payload_dir=$$(dirname "$(OPENSBI_PAYLOAD_OUT)"); \
+	 case "$$payload_dir" in /|[!/]*) echo "Invalid payload output directory: $$payload_dir" >&2; exit 1;; esac; \
+	 mkdir -p "$$payload_dir"; \
+	 stamp="$$payload_dir/.fw_payload.inputs"; \
+	 temp_stamp=$$(mktemp "$$stamp.XXXXXX"); trap 'rm -f "$$temp_stamp"' EXIT; \
+	 { sha256sum "$(OPENSBI_FW_PAYLOAD)"; \
+	   if [ "$(OPENSBI_EMBED_DTB)" = "1" ]; then sha256sum "$(DTB_FILE)"; fi; \
+	   printf 'offset=%s fdt=%s\n' "$$FW_TEXT_OFFSET" "$$FW_FDT_ADDR"; \
+	 } > "$$temp_stamp"; \
+	 if ! cmp -s "$$stamp" "$$temp_stamp"; then \
+		 rm -f "$$payload_dir"/{fw_base.o,fw_payload.o,fw_payload.elf,fw_payload.elf.ld,fw_payload.dep} \
+		       "$(OPENSBI_PAYLOAD_OUT)"; \
+		 mv -f "$$temp_stamp" "$$stamp"; \
+	 fi; \
+	 echo "  Image size     : $$FW_SIZE bytes"; \
+	 echo "  FW_PAYLOAD_OFFSET: $$FW_TEXT_OFFSET"; \
+	 echo "  FW_PAYLOAD_FDT_ADDR: $$FW_FDT_ADDR"; \
 	 EXTRA_FW_ARGS=(); \
 	 if [ "$(OPENSBI_EMBED_DTB)" = "1" ]; then \
 	 	EXTRA_FW_ARGS+=(FW_FDT_PATH=$(DTB_FILE)); \
@@ -600,7 +619,7 @@ _build-opensbi:
 		cd $(OPENSBI_PATCHED_SRC) && $(MAKE) O="$(OPENSBI_BUILD_ROOT)" PLATFORM=generic \
 			OPENSBI_VERSION_GIT="$$OPENSBI_VERSION_GIT" \
 			FW_PAYLOAD_PATH=$(OPENSBI_FW_PAYLOAD) \
-			FW_PAYLOAD_OFFSET=0x100000 \
+			FW_PAYLOAD_OFFSET=$$FW_TEXT_OFFSET \
 			FW_PAYLOAD_FDT_ADDR=$$FW_FDT_ADDR \
 			"$${EXTRA_FW_ARGS[@]}" \
 			-j$(OPENSBI_MAKE_JOBS); \
@@ -610,7 +629,7 @@ _build-opensbi:
 		  cd $(OPENSBI_PATCHED_SRC) && $(MAKE) O="$(OPENSBI_BUILD_ROOT)" PLATFORM=generic \
 			OPENSBI_VERSION_GIT="$$OPENSBI_VERSION_GIT" \
 			FW_PAYLOAD_PATH=$(OPENSBI_FW_PAYLOAD) \
-			FW_PAYLOAD_OFFSET=0x100000 \
+			FW_PAYLOAD_OFFSET=$$FW_TEXT_OFFSET \
 			FW_PAYLOAD_FDT_ADDR=$$FW_FDT_ADDR \
 			"$${EXTRA_FW_ARGS[@]}" \
 			-j$(OPENSBI_MAKE_JOBS) && \
