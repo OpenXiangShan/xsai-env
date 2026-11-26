@@ -34,6 +34,14 @@ XSAI_COMPATIBLE ?= xiangshan,ai-nemu-board xiangshan,nemu-board
 XSAI_MODEL ?= XiangShan AI
 XSAI_EXTRA_ISA_EXTENSIONS ?= zame zammai8i32
 XSAI_DTB_FILE := $(WORKLOAD_BUILD_ENV_HOME)/dts/build/xiangshan_ai.dtb
+# Reuse the canonical kernel/DTB hart-count controls. Defaults stay single-core.
+LINUX_SMP ?= n
+NR_CPUS ?= 1
+NR_HARTS ?= 1
+DTS_NR_HARTS_ARGS := --nr-harts $(NR_HARTS)
+SMP_IS_ON := $(filter y Y yes YES true TRUE 1,$(LINUX_SMP))
+SMP_CONFIG_ECHO := $(if $(SMP_IS_ON),echo "CONFIG_SMP=y"; echo "CONFIG_NR_CPUS=$(NR_CPUS)",echo "CONFIG_SMP=n"; echo "CONFIG_NR_CPUS=1")
+SMP_CONFIG_CMD := $(if $(SMP_IS_ON),./scripts/config --enable CONFIG_SMP && ./scripts/config --set-val CONFIG_NR_CPUS $(NR_CPUS),./scripts/config --disable CONFIG_SMP && ./scripts/config --set-val CONFIG_NR_CPUS 1)
 INITRAMFS_COMMON_SOURCES := $(RISCV_ROOTFS_HOME)/rootfsimg/initramfs-common-base.txt $(RISCV_ROOTFS_HOME)/rootfsimg/initramfs-common-libs.txt
 INITRAMFS_SOURCE ?= $(RISCV_ROOTFS_HOME)/rootfsimg/initramfs-disk-xsai.txt
 # Linux kernel version
@@ -263,7 +271,7 @@ build-linux:
 			echo "CONFIG_RISCV_ISA_ZICBOZ=n"; \
 			echo "CONFIG_RISCV_ISA_ZICBOP=n"; \
 			echo "CONFIG_RISCV_ISA_ZICBOM=n"; \
-			echo "CONFIG_SMP=n"; \
+			$(SMP_CONFIG_ECHO); \
 			echo "CONFIG_DEVMEM=y"; \
 			echo "CONFIG_STRICT_DEVMEM=n"; \
 			echo "CONFIG_IO_STRICT_DEVMEM=n"; \
@@ -318,7 +326,7 @@ build-linux:
 			./scripts/config --disable CONFIG_RISCV_ISA_ZICBOZ && \
 			./scripts/config --disable CONFIG_RISCV_ISA_ZICBOP && \
 			./scripts/config --disable CONFIG_RISCV_ISA_ZICBOM && \
-			./scripts/config --disable CONFIG_SMP && \
+			$(SMP_CONFIG_CMD) && \
 			./scripts/config --enable CONFIG_DEVMEM && \
 			./scripts/config --disable CONFIG_STRICT_DEVMEM && \
 			./scripts/config --disable CONFIG_IO_STRICT_DEVMEM && \
@@ -365,7 +373,7 @@ build-dtb-std: setup-submodules
 	@cd $(WORKLOAD_BUILD_ENV_HOME)/dts && \
 		mkdir -p build && \
 		python3 DTSGen.py \
-			--nr-harts 1 \
+			$(DTS_NR_HARTS_ARGS) \
 			--rva-profile rva23u64 \
 			$(DTS_DIRECT_MAP_ARGS) \
 			--bootargs "console=hvc0 earlycon=sbi" \
@@ -385,7 +393,7 @@ build-dtb-xsai: setup-submodules
 			--compatible $(XSAI_COMPATIBLE) \
 			--model "$(XSAI_MODEL)" \
 			--cpu-compatible xiangshan,ai riscv \
-			--nr-harts 1 \
+			$(DTS_NR_HARTS_ARGS) \
 			--rva-profile rva23u64 \
 			--isa-extensions $(XSAI_EXTRA_ISA_EXTENSIONS) \
 			--direct-map-mem $(XSAI_DIRECT_MAP_MEM_START) $(XSAI_DIRECT_MAP_MEM_SIZE) \
@@ -428,6 +436,8 @@ build-opensbi-nemu:
 # rm -rf "$(OPENSBI_BUILD_ROOT)" workaround avoided occasional stale firmware
 # link artifacts, but it forced full QEMU/NEMU OpenSBI rebuilds on every run.
 # Clean the affected build root explicitly if the stale-link issue reappears.
+# OpenSBI's .dep files omit the kernel/DTB .incbin inputs. Invalidate only
+# generated payload objects and the linker script when those inputs change.
 _build-opensbi:
 	@echo "Building OpenSBI firmware..."
 	@if [ ! -f "$(OPENSBI)/Makefile" ]; then \
@@ -450,22 +460,53 @@ _build-opensbi:
 	@set -euo pipefail; git -C "$(OPENSBI)" archive HEAD | tar -C "$(OPENSBI_PATCHED_SRC)" -xf -
 	@echo "Applying OpenSBI patches to generated source..."
 	@bash $(WORK_DIR)/opensbi-patches/apply-opensbi-patches.sh "$(OPENSBI_PATCHED_SRC)"
-	@FW_SIZE=$$(stat -c%s $(LINUX_IMAGE)) && \
+	@set -euo pipefail; \
+	 P="$(OPENSBI_PAYLOAD_OUT)"; \
+	 case "$$P" in \
+	   /*) ;; \
+	   *) echo "OpenSBI payload output must be an absolute file path: $$P" >&2; exit 1 ;; \
+	 esac; \
+	 D="$$(dirname "$$P")"; \
+	 if [ "$$D" = "." ] || [ "$$D" = "/" ]; then \
+	   echo "Invalid OpenSBI payload output directory: $$D" >&2; exit 1; \
+	 fi; \
+	 mkdir -p "$$D"; \
+	 S="$$D/.fw_payload.inputs"; \
+	 FW_TEXT_OFFSET=$$(python3 -c \
+	   "import struct; d=open('$(LINUX_IMAGE)','rb').read(16); \
+	    print(hex(struct.unpack('<Q', d[8:16])[0]))"); \
+	 { sha256sum "$(LINUX_IMAGE)"; \
+	   if [ "$(OPENSBI_EMBED_DTB)" = "1" ]; then sha256sum "$(DTB_FILE)"; fi; \
+	   echo "offset $$FW_TEXT_OFFSET"; \
+	 } > "$$S.new"; \
+	 if [ -f "$$P" ] && ! cmp -s "$$S" "$$S.new"; then \
+		echo "  Payload inputs changed (kernel Image / device tree / offset): forcing relink"; \
+		rm -f "$$D/fw_base.o" "$$D/fw_payload.o" "$$D/fw_payload.elf" \
+		      "$$D/fw_payload.elf.ld" "$$D/fw_payload.dep" "$$P"; \
+	 fi; \
+	 mv -f "$$S.new" "$$S"
+	@set -euo pipefail; \
+	 FW_SIZE=$$(stat -c%s "$(LINUX_IMAGE)"); \
+	 FW_TEXT_OFFSET=$$(python3 -c \
+	   "import struct; d=open('$(LINUX_IMAGE)','rb').read(16); \
+	    print(hex(struct.unpack('<Q', d[8:16])[0]))"); \
 	 FW_FDT_ADDR=$$(python3 -c \
-	   "sz=$$FW_SIZE; print(hex(((sz+0x800000+0xfffff)//0x100000)*0x100000+0x80000000))") && \
-	 OPENSBI_VERSION_GIT=$$(git -C "$(OPENSBI)" describe --always --tags 2>/dev/null || true) && \
-	 echo "  Image size     : $$FW_SIZE bytes" && \
-	 echo "  FW_PAYLOAD_FDT_ADDR: $$FW_FDT_ADDR" && \
+	   "sz=$$FW_SIZE; print(hex(((sz+0x800000+0xfffff)//0x100000)*0x100000+0x80000000))"); \
+	 OPENSBI_VERSION_GIT=$$(git -C "$(OPENSBI)" describe --always --tags 2>/dev/null || true); \
+	 echo "  Image size     : $$FW_SIZE bytes"; \
+	 echo "  FW_PAYLOAD_OFFSET  : $$FW_TEXT_OFFSET (read from Image header text_offset)"; \
+	 echo "  FW_PAYLOAD_FDT_ADDR: $$FW_FDT_ADDR"; \
 	 EXTRA_FW_ARGS=(); \
 	 if [ "$(OPENSBI_EMBED_DTB)" = "1" ]; then \
 	 	EXTRA_FW_ARGS+=(FW_FDT_PATH=$(DTB_FILE)); \
 	 fi; \
 	if [ "$(SHOW_OPENSBI_BUILD_LOG)" = "1" ]; then \
 		echo "$$(date '+[fw %F %T %z] START build-opensbi jobs=$(OPENSBI_MAKE_JOBS) root=$(OPENSBI_BUILD_ROOT)')"; \
-		cd $(OPENSBI_PATCHED_SRC) && $(MAKE) O="$(OPENSBI_BUILD_ROOT)" PLATFORM=generic \
+		cd "$(OPENSBI_PATCHED_SRC)"; \
+		$(MAKE) O="$(OPENSBI_BUILD_ROOT)" PLATFORM=generic \
 			OPENSBI_VERSION_GIT="$$OPENSBI_VERSION_GIT" \
 			FW_PAYLOAD_PATH=$(LINUX_IMAGE) \
-			FW_PAYLOAD_OFFSET=0x100000 \
+			FW_PAYLOAD_OFFSET=$$FW_TEXT_OFFSET \
 			FW_PAYLOAD_FDT_ADDR=$$FW_FDT_ADDR \
 			"$${EXTRA_FW_ARGS[@]}" \
 			-j$(OPENSBI_MAKE_JOBS); \
@@ -475,7 +516,7 @@ _build-opensbi:
 		  cd $(OPENSBI_PATCHED_SRC) && $(MAKE) O="$(OPENSBI_BUILD_ROOT)" PLATFORM=generic \
 			OPENSBI_VERSION_GIT="$$OPENSBI_VERSION_GIT" \
 			FW_PAYLOAD_PATH=$(LINUX_IMAGE) \
-			FW_PAYLOAD_OFFSET=0x100000 \
+			FW_PAYLOAD_OFFSET=$$FW_TEXT_OFFSET \
 			FW_PAYLOAD_FDT_ADDR=$$FW_FDT_ADDR \
 			"$${EXTRA_FW_ARGS[@]}" \
 			-j$(OPENSBI_MAKE_JOBS) && \

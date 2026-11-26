@@ -344,8 +344,13 @@ ifneq ($(LLAMA_MODEL_QUANTIZE),)
 _LLAMA_EXTRA += MODEL_QUANTIZE=$(LLAMA_MODEL_QUANTIZE)
 endif
 
+# Keep the firmware hart count and guest threads consistent with QEMU's SMP.
+# Preserve the historical single-core defaults unless SMP is explicitly raised.
+_CPU_THREADS := $(if $(XSAI_LLAMA_FAKE_BENCH_T),$(XSAI_LLAMA_FAKE_BENCH_T),$(SMP))
+_CPU_EXTRA := $(if $(filter-out 1,$(SMP)),LINUX_SMP=y NR_CPUS=$(SMP) NR_HARTS=$(SMP) XSAI_LLAMA_FAKE_BENCH_T=$(_CPU_THREADS))
+
 firmware:
-	$(MAKE) -C firmware all $(_LLAMA_EXTRA)
+	$(MAKE) -C firmware all $(_LLAMA_EXTRA) $(_CPU_EXTRA)
 
 ccdb:
 	$(CCDB_SCRIPT) --db "$(CCDB)" -- make $(CCDB_MAKE)
