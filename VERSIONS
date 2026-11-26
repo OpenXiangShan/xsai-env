@@ -6,14 +6,14 @@
 # Format:
 #   <submodule-path>  <commit>  <date>  <branch/tag>  <remote-url>
 
-# Generated: 2026-11-26 13:21 UTC
+# Generated: 2026-11-26 18:48 UTC
 
 # COMPONENT                     COMMIT                                      DATE                       BRANCH/TAG                      URL
 # ---------                     ------                                      ----                       ----------                      ---
 DRAMsim3                        1d2a9bf6da8e050d975ef2669c42faa93943f489    2024-09-05 14:24:16 +0800  (detached)                      git@github.com:OpenXiangShan/DRAMsim3.git
-NEMU                            2ec110b618bb8f08cf0b54ca3d9cbb0f210f895d    2026-10-15 16:19:14 +0800  (detached)                      git@github.com:OpenXiangShan/NEMU.git
+NEMU                            ccb6aa9ddfcbacd3eb88deccba33905f71f11567    2026-11-27 02:42:10 +0800  (detached)                      git@github.com:OpenXiangShan/NEMU.git
 NutShell                        fc12171d929e7e589fab9f794ab63ce12e6c594e    2024-12-29 21:59:26 +0800  (detached)                      git@github.com:OSCPU/NutShell
-XSAI                            d6c11841a8c6908c088cfe07ea4ca8a80d66e846    2026-11-23 17:31:44 +0800  (detached)                      git@github.com:OpenXiangShan/XSAI
+XSAI                            4f6ed24c75c70cf9767676b15562b3b06c3a8ef6    2026-11-26 21:25:46 +0800  (detached)                      git@github.com:OpenXiangShan/XSAI
 docs/CUTE-Design-Doc            93aa3d27bcb32624a86abfbd081e8aa53b3e87a7    2026-04-30 00:07:14 +0800  (detached)                      git@github.com:OpenCUTE/CUTE-Design-Doc.git
 firmware/LibCheckpoint          2115c400af664ba06c57114db39a777ee7e5f1d0    2025-11-18 12:36:59 +0800  (detached)                      git@github.com:OpenXiangShan/LibCheckpoint
 firmware/gcpt_restore           5b4fefe9efc5d22802f9e592ad2649b38d5146c1    2026-05-14 15:38:40 +0800  (detached)                      git@github.com:OpenXiangShan/LibCheckpointAlpha.git
@@ -22,7 +22,7 @@ firmware/opensbi                74434f255873d74e56cc50aa762d1caf24c099f8    2026
 firmware/riscv-rootfs           38f8991df3c8de0ad62d7234a3178d8f918b1d8e    2026-11-26 20:00:05 +0800  (detached)                      git@github.com:OurCompArchGroup/riscv-rootfs.git
 llvm-project-ame                47ce7f1ab61052095855abe051d9bb89e42d780e    2026-11-26 20:36:42 +0800  (detached)                      git@github.com:OurCompArchGroup/llvm-project-ame.git
 nexus-am                        a4f561b9685c1d480259169c667852cecdc0bcab    2026-11-26 19:56:51 +0800  (detached)                      git@github.com:OurCompArchGroup/nexus-am-ame.git
-qemu                            741916e23ed884feeb68e57cd4019850155e5197    2026-11-26 18:16:22 +0800  (detached)                      git@github.com:OpenXiangShan/qemu
+qemu                            ca1a426e8287f72199d4ac3bc564b546c95bce95    2026-11-26 21:50:40 +0800  (detached)                      git@github.com:OpenXiangShan/qemu
 riscv-matrix-spec               551208f95a6c231d7ae32ab0098975d2aee3b0dc    2026-11-26 19:56:15 +0800  (detached)                      git@github.com:OurCompArchGroup/riscv-matrix-extension-spec.git
 software/MNN                    f7bee4d8e2e217410afd34a785ee3bde68987d02    2026-10-13 19:23:44 +0800  (detached)                      git@github.com:OurCompArchGroup/MNN.git
 software/llama.cpp              8e480513c61f50767147c7f21bc3642c887ce57e    2026-11-26 20:11:12 +0800  (detached)                      git@github.com:OurCompArchGroup/llama.cpp.git

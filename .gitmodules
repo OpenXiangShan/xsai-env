@@ -1,7 +1,7 @@
 [submodule "XSAI"]
 	path = XSAI
 	url = https://github.com/OpenXiangShan/XSAI
-	branch = master
+	branch = feat/mxfp4-mainline
 [submodule "nexus-am"]
 	path = nexus-am
 	url = https://github.com/OurCompArchGroup/nexus-am-ame.git
@@ -13,7 +13,7 @@
 [submodule "NEMU"]
 	path = NEMU
 	url = https://github.com/OpenXiangShan/NEMU.git
-	branch = master
+	branch = feat/mxfp4-mainline
 [submodule "NutShell"]
 	path = NutShell
 	url = https://github.com/OSCPU/NutShell
