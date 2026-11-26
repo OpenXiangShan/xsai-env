@@ -52,7 +52,7 @@ init_optional_sources() {
 }
 
 init_dev() {
-  git submodule update --init "${FORCE_ARGS[@]}" DRAMsim3 NEMU NutShell nexus-am qemu
+  git submodule update --init "${FORCE_ARGS[@]}" DRAMsim3 NEMU NutShell nexus-am qemu software/llama.cpp
   git submodule update --init "${FORCE_ARGS[@]}" XSAI
   "$(command -v make)" -C XSAI init-force
   "$(command -v make)" -C firmware init-force

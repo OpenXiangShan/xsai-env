@@ -36,7 +36,7 @@ gitmodules_get() {
 # ── Update one submodule ─────────────────────────────────────────────────────
 update_one() {
     local name="$1"
-    local path branch shallow
+    local path branch shallow refspec
 
     path=$(gitmodules_get "$name" path)
     branch=$(gitmodules_get "$name" branch)
@@ -44,6 +44,10 @@ update_one() {
 
     if [[ -z "$path" ]]; then
         echo "[update] WARNING: submodule '$name' not found in .gitmodules, skipping."
+        return
+    fi
+    if [[ ! -e "$ROOT/$path/.git" ]]; then
+        echo "[update] WARNING: submodule '$name' is not initialized, skipping."
         return
     fi
 
@@ -55,10 +59,21 @@ update_one() {
     cd "$ROOT/$path"
 
     if [[ -n "$branch" ]]; then
-        git fetch $depth_flag origin "$branch"
-        git checkout "$branch"
-        # Only pull --rebase for non-shallow (shallow histories can't rebase cleanly)
-        [[ -z "$depth_flag" ]] && git pull --rebase || true
+        refspec="+refs/heads/$branch:refs/remotes/origin/$branch"
+        if git show-ref --verify --quiet "refs/heads/$branch"; then
+            depth_flag=""
+        fi
+        git fetch $depth_flag origin "$refspec"
+        if ! git config --fixed-value --get-all remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*' >/dev/null &&
+           ! git config --fixed-value --get-all remote.origin.fetch "$refspec" >/dev/null; then
+            git config --add remote.origin.fetch "$refspec"
+        fi
+        if git show-ref --verify --quiet "refs/heads/$branch"; then
+            git checkout "$branch"
+            git merge --ff-only "origin/$branch"
+        else
+            git checkout --track -b "$branch" "origin/$branch"
+        fi
     else
         # No branch pinned: just update to whatever the parent repo has locked
         git fetch $depth_flag origin
