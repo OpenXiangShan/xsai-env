@@ -9,8 +9,8 @@ release. The archive refs below are unchanged.
 
 | Path | Owning GitHub repository | Branch to fetch | Pinned commit |
 | --- | --- | --- | --- |
-| `XSAI` | `OpenXiangShan/XSAI` | `feat/mxfp4-collab` | `5a2ee2d2ad8cc6713c90de381747e96f0b60bbfd` |
-| `XSAI/CUTE` | `OpenXiangShan/CUTE` | `feat/mxfp4-collab` | `860f37961584c09b0651e927798dc83c926ced76` |
+| `XSAI` | `OpenXiangShan/XSAI` | `feat/mxfp4-collab` | `e743cf7d6c0212e7e7ff144a982329490a68c86d` |
+| `XSAI/CUTE` | `OpenXiangShan/CUTE` | `feat/mxfp4-collab` | `f7f0776733bb52803789a6014fd86167673c30cc` |
 | `XSAI/CUTE/cute-fpe` | `OpenXiangShan/CUTEFPE` | `feat/mxfp4-collab` | `7368603c559446fd6e84292121bd5a43f9e8115d` |
 | `XSAI/CUTE/XSAICache` | `OpenXiangShan/XSAICache` | `feat/mxfp4-collab-cute` | `3a40ffd93aa1fdbf1f4a1994806eaecfc7790090` |
 | `XSAI/XSAICache` | `OpenXiangShan/XSAICache` | `feat/mxfp4-collab-xsai` | `d2d0893ac4556ed1a25139b9024305ef2a4e6c89` |
@@ -23,7 +23,9 @@ release. The archive refs below are unchanged.
 | `llvm-project-ame` | `OurCompArchGroup/llvm-project-ame` | `archive/mxfp4-prefill-20261123` | `372bc8d4c9f1b58c7cdab2acb2b3f7f8eb18e140` |
 | `riscv-matrix-spec` | `OurCompArchGroup/riscv-matrix-extension-spec` | `feat/mxfp4-collab` | `9499d593f122bb7a344fdfaeab7af13ab35b0f0d` |
 
-Start in a separate checkout. Use the recorded gitlinks, not `--remote`:
+Start in a separate checkout. `make init` initializes the recorded commits,
+usually with detached HEADs. It includes `software/llama.cpp` and runs XSAI's
+own nested init. To fetch only selected public sources without the Linux setup:
 
 ```sh
 git clone --single-branch --branch feat/mxfp4-integration https://github.com/OpenXiangShan/xsai-env.git
@@ -31,9 +33,21 @@ cd xsai-env
 git submodule update --init -- XSAI NEMU qemu nexus-am riscv-matrix-spec firmware/riscv-rootfs software/llama.cpp
 ```
 
-For RTL work, initialize XSAI using its own `make -C XSAI init-force`. For the
-custom compiler, readers with GitHub access to `llvm-project-ame` can initialize
-it with `git submodule update --init --checkout -- llvm-project-ame`.
+After the scoped checkout, use `make -C XSAI init` to initialize the RTL
+dependencies, or `make -C XSAI/CUTE init` for standalone CUTE. The custom
+compiler remains opt-in: readers with GitHub access can run
+`git submodule update --init --checkout -- llvm-project-ame`.
+
+The `branch` fields in `.gitmodules` name the collaboration or archive refs.
+They do not override the gitlinks at init. To follow a top-level branch on
+purpose, run e.g. `bash scripts/update-submodule.sh software-llama`. The updater
+can attach a local tracking branch and fast-forward it; review any changes to
+gitlinks and `VERSIONS` separately. Do not use `--remote --recursive` for setup.
+
+The XSAI snapshot preserves the public `fix/rob-redirect-interlock` base
+`ba3406b5817cc81171fe6f17173bcbbf790455ec` from 2026-08-31. It is not based
+on current `master`. A mainline port must reconcile the RTL changes and the
+corresponding CUTE, difftest, and cache pins as a set.
 
 The snapshot includes four scale banks per CUTE side, the matching difftest
 schema and AM regressions, the QEMU scale/stride/trap fixes, and the native

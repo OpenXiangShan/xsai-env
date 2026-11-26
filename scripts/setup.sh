@@ -12,7 +12,7 @@ if [[ "$GIT_FORCE_INIT" == "1" ]]; then
 fi
 
 init_dev() {
-  git submodule update --init "${FORCE_ARGS[@]}" DRAMsim3 NEMU NutShell nexus-am riscv-matrix-spec qemu
+  git submodule update --init "${FORCE_ARGS[@]}" DRAMsim3 NEMU NutShell nexus-am riscv-matrix-spec qemu software/llama.cpp
   git submodule update --init "${FORCE_ARGS[@]}" --depth 1 llvm-project-ame
   git submodule update --init "${FORCE_ARGS[@]}" XSAI
   $(command -v make) -C XSAI init-force

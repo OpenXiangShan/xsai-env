@@ -6,14 +6,14 @@
 # Format:
 #   <submodule-path>  <commit>  <date>  <branch/tag>  <remote-url>
 
-# Generated: 2026-11-26 10:28 UTC
+# Generated: 2026-11-26 10:57 UTC
 
 # COMPONENT                     COMMIT                                      DATE                       BRANCH/TAG                      URL
 # ---------                     ------                                      ----                       ----------                      ---
 DRAMsim3                        1d2a9bf6da8e050d975ef2669c42faa93943f489    2024-09-05 14:24:16 +0800  (detached)                      git@github.com:OpenXiangShan/DRAMsim3.git
 NEMU                            a470913fa2ceab325d554f8855984cb81a68d01a    2026-11-23 22:27:39 +0800  (detached)                      git@github.com:OpenXiangShan/NEMU.git
 NutShell                        fc12171d929e7e589fab9f794ab63ce12e6c594e    2024-12-29 21:59:26 +0800  (detached)                      git@github.com:OSCPU/NutShell
-XSAI                            5a2ee2d2ad8cc6713c90de381747e96f0b60bbfd    2026-11-26 18:27:21 +0800  (detached)                      git@github.com:OpenXiangShan/XSAI
+XSAI                            e743cf7d6c0212e7e7ff144a982329490a68c86d    2026-11-26 18:55:38 +0800  (detached)                      git@github.com:OpenXiangShan/XSAI
 docs/CUTE-Design-Doc            93aa3d27bcb32624a86abfbd081e8aa53b3e87a7    2026-04-30 00:07:14 +0800  (detached)                      git@github.com:OpenCUTE/CUTE-Design-Doc.git
 firmware/LibCheckpoint          2115c400af664ba06c57114db39a777ee7e5f1d0    2025-11-18 12:36:59 +0800  (detached)                      git@github.com:OpenXiangShan/LibCheckpoint
 firmware/gcpt_restore           5b4fefe9efc5d22802f9e592ad2649b38d5146c1    2026-05-14 15:38:40 +0800  (detached)                      git@github.com:OpenXiangShan/LibCheckpointAlpha.git
